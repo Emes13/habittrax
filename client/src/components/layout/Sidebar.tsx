@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useHabitModal } from "@/lib/hooks/use-habit-modal";
+import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import {
   HomeIcon,
@@ -7,7 +8,8 @@ import {
   BarChartIcon,
   SettingsIcon,
   PlusIcon,
-  CheckSquareIcon
+  CheckSquareIcon,
+  LogOutIcon
 } from "lucide-react";
 
 interface SidebarProps {
@@ -24,6 +26,7 @@ const navItems = [
 export default function Sidebar({ className }: SidebarProps) {
   const [location] = useLocation();
   const { openModal } = useHabitModal();
+  const { user, logoutMutation } = useAuth();
 
   return (
     <aside className={cn("hidden md:flex md:w-64 flex-col bg-white border-r border-gray-200 h-screen", className)}>
@@ -31,6 +34,11 @@ export default function Sidebar({ className }: SidebarProps) {
         <h1 className="text-xl font-heading font-bold text-primary flex items-center">
           <CheckSquareIcon className="mr-2 h-6 w-6" /> HabitTracker
         </h1>
+        {user && (
+          <p className="text-sm text-muted-foreground mt-2">
+            Welcome, {user.username}
+          </p>
+        )}
       </div>
       
       <nav className="flex-grow py-4 px-2">
@@ -55,13 +63,22 @@ export default function Sidebar({ className }: SidebarProps) {
         </ul>
       </nav>
       
-      <div className="p-4 border-t border-gray-200">
+      <div className="p-4 border-t border-gray-200 space-y-2">
         <button
           onClick={() => openModal()}
           className="flex items-center justify-center w-full px-4 py-2 text-white bg-primary rounded-lg hover:bg-primary/90 transition-colors"
         >
           <PlusIcon className="h-5 w-5 mr-2" />
           <span>New Habit</span>
+        </button>
+        
+        <button
+          onClick={() => logoutMutation.mutate()}
+          disabled={logoutMutation.isPending}
+          className="flex items-center justify-center w-full px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+        >
+          <LogOutIcon className="h-5 w-5 mr-2" />
+          <span>{logoutMutation.isPending ? "Logging out..." : "Logout"}</span>
         </button>
       </div>
     </aside>

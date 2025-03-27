@@ -8,30 +8,19 @@ import Home from "@/pages/home";
 import Habits from "@/pages/habits";
 import Statistics from "@/pages/statistics";
 import Settings from "@/pages/settings";
-import { useEffect } from "react";
-import { apiRequest } from "./lib/queryClient";
+import AuthPage from "@/pages/auth-page";
+import { ProtectedRoute } from "@/lib/protected-route";
+import { AuthProvider } from "@/hooks/use-auth";
 
 function Router() {
-  useEffect(() => {
-    // Seed demo data when app first loads (only for demo purposes)
-    const seedDemoData = async () => {
-      try {
-        await apiRequest("POST", "/api/seed-demo-data", {});
-      } catch (error) {
-        console.error("Error seeding demo data:", error);
-      }
-    };
-    
-    seedDemoData();
-  }, []);
-
   return (
     <Switch>
-      <Route path="/" component={Habits} />
-      <Route path="/dashboard" component={Home} />
-      <Route path="/habits" component={Habits} />
-      <Route path="/statistics" component={Statistics} />
-      <Route path="/settings" component={Settings} />
+      <Route path="/auth" component={AuthPage} />
+      <ProtectedRoute path="/" component={() => <Habits />} />
+      <ProtectedRoute path="/dashboard" component={() => <Home />} />
+      <ProtectedRoute path="/habits" component={() => <Habits />} />
+      <ProtectedRoute path="/statistics" component={() => <Statistics />} />
+      <ProtectedRoute path="/settings" component={() => <Settings />} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -40,10 +29,12 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <MainLayout>
-        <Router />
-      </MainLayout>
-      <Toaster />
+      <AuthProvider>
+        <MainLayout>
+          <Router />
+        </MainLayout>
+        <Toaster />
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

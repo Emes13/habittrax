@@ -12,15 +12,21 @@ export function ProtectedRoute({ path, component: Component }: ProtectedRoutePro
 
   return (
     <Route path={path}>
-      {isLoading ? (
-        <div className="flex items-center justify-center min-h-screen">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      ) : user ? (
-        <Component />
-      ) : (
-        <Redirect to="/auth" />
-      )}
+      {() => {
+        if (isLoading) {
+          return (
+            <div className="flex items-center justify-center min-h-screen">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          );
+        }
+        
+        if (!user) {
+          return <Redirect to="/auth" />;
+        }
+        
+        return <Component />;
+      }}
     </Route>
   );
 }

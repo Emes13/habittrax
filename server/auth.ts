@@ -9,7 +9,7 @@ import { User } from "@shared/schema";
 
 declare global {
   namespace Express {
-    interface User extends Omit<User, keyof User> {
+    interface User {
       id: number;
       username: string;
       password: string;

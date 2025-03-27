@@ -7,10 +7,13 @@ import {
   UserIcon,
   MenuIcon,
   XIcon,
-  CheckSquareIcon
+  CheckSquareIcon,
+  PlusIcon,
+  LogOutIcon
 } from "lucide-react";
 import { useMobileMenu } from "@/lib/hooks/use-mobile-menu";
 import { useHabitModal } from "@/lib/hooks/use-habit-modal";
+import { useAuth } from "@/hooks/use-auth";
 
 interface MobileNavbarProps {
   className?: string;
@@ -34,6 +37,7 @@ export default function MobileNavbar({ className }: MobileNavbarProps) {
   const [location] = useLocation();
   const { isOpen, toggleMenu, closeMenu } = useMobileMenu();
   const { openModal } = useHabitModal();
+  const { user, logoutMutation } = useAuth();
 
   return (
     <>
@@ -102,7 +106,12 @@ export default function MobileNavbar({ className }: MobileNavbarProps) {
               </ul>
             </nav>
 
-            <div className="mt-6">
+            <div className="mt-6 space-y-2">
+              {user && (
+                <p className="text-sm text-muted-foreground mb-4">
+                  Welcome, {user.username}
+                </p>
+              )}
               <button
                 onClick={() => {
                   closeMenu();
@@ -112,6 +121,18 @@ export default function MobileNavbar({ className }: MobileNavbarProps) {
               >
                 <PlusIcon className="h-5 w-5 mr-2" />
                 <span>New Habit</span>
+              </button>
+              
+              <button
+                onClick={() => {
+                  closeMenu();
+                  logoutMutation.mutate();
+                }}
+                disabled={logoutMutation.isPending}
+                className="flex items-center justify-center w-full px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                <LogOutIcon className="h-5 w-5 mr-2" />
+                <span>{logoutMutation.isPending ? "Logging out..." : "Logout"}</span>
               </button>
             </div>
           </div>
