@@ -88,9 +88,11 @@ export function HabitList({ selectedCategory, date = formatDate(new Date()) }: H
 
   // Filter logs for the selected date
   const currentDateLogs = habitLogs 
-    ? (habitLogs as HabitLog[]).filter((log: HabitLog) => 
-        formatDate(new Date(log.date)) === date
-      ) 
+    ? (habitLogs as HabitLog[]).filter((log: HabitLog) => {
+        const logDate = new Date(log.date).toISOString().split('T')[0]; 
+        const compareDate = new Date(date).toISOString().split('T')[0];
+        return logDate === compareDate;
+      }) 
     : [];
 
   return (

@@ -172,12 +172,15 @@ export class MemStorage implements IStorage {
   }
 
   async getHabitLogsByDate(userId: number, date: string): Promise<HabitLog[]> {
+    const queryDate = new Date(date).toISOString().split('T')[0]; // Format as YYYY-MM-DD
+    
     return Array.from(this.habitLogs.values()).filter(log => {
       // Get habits for this user
       const habit = this.habits.get(log.habitId);
       if (!habit || habit.userId !== userId) return false;
       
-      return log.date.toString() === date;
+      const logDate = new Date(log.date).toISOString().split('T')[0];
+      return logDate === queryDate;
     });
   }
 
@@ -196,9 +199,12 @@ export class MemStorage implements IStorage {
   }
 
   async getHabitLog(habitId: number, date: string): Promise<HabitLog | undefined> {
-    return Array.from(this.habitLogs.values()).find(
-      log => log.habitId === habitId && log.date.toString() === date
-    );
+    const logDate = new Date(date).toISOString().split('T')[0]; // Format as YYYY-MM-DD for consistent comparison
+    
+    return Array.from(this.habitLogs.values()).find(log => {
+      const storedDate = new Date(log.date).toISOString().split('T')[0];
+      return log.habitId === habitId && storedDate === logDate;
+    });
   }
 
   async createHabitLog(insertLog: InsertHabitLog): Promise<HabitLog> {
@@ -241,7 +247,7 @@ export class MemStorage implements IStorage {
       return await this.createHabitLog({
         habitId,
         userId,
-        date: new Date(date),
+        date: date, // Use the string directly for date since the schema expects a string
         completed: true
       });
     }

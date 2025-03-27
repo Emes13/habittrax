@@ -41,9 +41,12 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
   const category = categories.find(c => c.id === habit.categoryId);
   
   // Find if habit is completed for the given date
-  const habitLog = logs.find(log => 
-    log.habitId === habit.id && formatDate(new Date(log.date)) === date
-  );
+  const habitLog = logs.find(log => {
+    // Standardize date formats for comparison
+    const logDate = new Date(log.date).toISOString().split('T')[0];
+    const compareDate = new Date(date).toISOString().split('T')[0];
+    return log.habitId === habit.id && logDate === compareDate;
+  });
   
   const isCompleted = habitLog?.completed || false;
   
@@ -63,9 +66,11 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
       
       // Create optimistic update
       const updatedHabitLogsList = [...(logs || [])];
-      const existingLogIndex = updatedHabitLogsList.findIndex(
-        log => log.habitId === habit.id && formatDate(new Date(log.date)) === date
-      );
+      const existingLogIndex = updatedHabitLogsList.findIndex(log => {
+        const logDate = new Date(log.date).toISOString().split('T')[0];
+        const compareDate = new Date(date).toISOString().split('T')[0];
+        return log.habitId === habit.id && logDate === compareDate;
+      });
       
       if (existingLogIndex >= 0) {
         // Update existing log
