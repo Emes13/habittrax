@@ -35,6 +35,13 @@ export function HabitCharts() {
       startDate: formatDate(startDate), 
       endDate: formatDate(endDate) 
     }],
+    queryFn: async ({ queryKey }) => {
+      const response = await fetch(`/api/habit-logs?startDate=${formatDate(startDate)}&endDate=${formatDate(endDate)}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch habit logs');
+      }
+      return response.json();
+    }
   });
   
   const isLoading = isLoadingHabits || isLoadingCategories || isLoadingLogs;

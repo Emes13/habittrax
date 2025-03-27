@@ -17,6 +17,13 @@ export function CircularProgressDisplay({ date = formatDate(new Date()) }: Circu
   // Fetch habit logs for the date
   const { data: habitLogs, isLoading: isLoadingLogs } = useQuery<HabitLog[]>({
     queryKey: ['/api/habit-logs', { date }],
+    queryFn: async ({ queryKey }) => {
+      const response = await fetch(`/api/habit-logs?date=${date}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch habit logs');
+      }
+      return response.json();
+    }
   });
   
   const isLoading = isLoadingHabits || isLoadingLogs;

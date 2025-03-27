@@ -31,6 +31,13 @@ export function WeeklyCalendar({ onSelectDate, selectedDate }: WeeklyCalendarPro
       startDate: formatDate(weekDates.start), 
       endDate: formatDate(weekDates.end) 
     }],
+    queryFn: async ({ queryKey }) => {
+      const response = await fetch(`/api/habit-logs?startDate=${formatDate(weekDates.start)}&endDate=${formatDate(weekDates.end)}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch habit logs');
+      }
+      return response.json();
+    }
   });
   
   // Navigate to previous week

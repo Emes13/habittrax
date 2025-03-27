@@ -41,6 +41,14 @@ export default {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
         },
+        success: {
+          DEFAULT: "hsl(142, 76%, 36%)",
+          foreground: "hsl(0, 0%, 100%)",
+        },
+        warning: {
+          DEFAULT: "hsl(32, 94%, 62%)",
+          foreground: "hsl(0, 0%, 100%)",
+        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",

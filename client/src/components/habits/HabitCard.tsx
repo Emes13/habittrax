@@ -37,8 +37,15 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
       return response.json();
     },
     onSuccess: () => {
+      // Invalidate all habit logs queries to ensure UI updates
       queryClient.invalidateQueries({ queryKey: ['/api/habit-logs'] });
+      
+      // Also invalidate specific date queries
       queryClient.invalidateQueries({ queryKey: ['/api/habit-logs', { date }] });
+      
+      // Also refetch the habit logs for the current date explicitly
+      queryClient.refetchQueries({ queryKey: ['/api/habit-logs'] });
+      
       toast({
         title: isCompleted ? "Habit marked as incomplete" : "Habit completed!",
         description: isCompleted ? "Keep working on your habits!" : "Great job keeping up with your habits!",
@@ -77,13 +84,13 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
           onClick={handleToggle}
           disabled={isPending}
           className={cn(
-            "flex-shrink-0 mt-1 w-6 h-6 rounded-full border-2 flex items-center justify-center",
+            "flex-shrink-0 mt-1 w-6 h-6 rounded-full flex items-center justify-center transition-all duration-200",
             isCompleted
-              ? "border-success bg-success/10 text-white"
-              : "border-gray-300"
+              ? "border-0 bg-success shadow-sm text-white"
+              : "border-2 border-gray-300 hover:border-primary/50"
           )}
         >
-          {isCompleted && <CheckIcon className="h-3 w-3 text-success" />}
+          {isCompleted && <CheckIcon className="h-4 w-4 text-white" />}
         </button>
         
         <div className="flex-grow">
