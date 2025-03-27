@@ -285,7 +285,7 @@ export class MemStorage implements IStorage {
 // Database storage implementation
 export class DatabaseStorage implements IStorage {
   db: ReturnType<typeof drizzle>;
-  pool: Pool;
+  pool: any; // Using any as a workaround for the Pool type
   sessionStore: session.Store;
 
   constructor() {

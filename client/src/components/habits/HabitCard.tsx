@@ -102,7 +102,7 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
       
       toast({
         title: isCompleted ? "Habit marked as incomplete" : "Habit completed!",
-        description: isCompleted ? "Keep working on your habits!" : "Great job keeping up with your habits!",
+        description: isCompleted ? "You can still complete it later!" : "Great job keeping up with your habits!",
         variant: "default", // Only default and destructive are available
       });
     },
