@@ -4,6 +4,11 @@ import {
   habits, Habit, InsertHabit,
   habitLogs, HabitLog, InsertHabitLog
 } from "@shared/schema";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { eq, and, between, desc } from "drizzle-orm";
+import { Pool } from "pg";
+import session from "express-session";
+import connectPg from "connect-pg-simple";
 
 export interface IStorage {
   // User operations
@@ -33,6 +38,9 @@ export interface IStorage {
   createHabitLog(log: InsertHabitLog): Promise<HabitLog>;
   updateHabitLog(id: number, log: Partial<InsertHabitLog>): Promise<HabitLog | undefined>;
   toggleHabitCompletion(habitId: number, userId: number, date: string): Promise<HabitLog>;
+  
+  // Session
+  sessionStore: session.Store;
 }
 
 export class MemStorage implements IStorage {
@@ -44,6 +52,7 @@ export class MemStorage implements IStorage {
   private categoriesCurrentId: number;
   private habitsCurrentId: number;
   private habitLogsCurrentId: number;
+  sessionStore: session.Store;
 
   constructor() {
     this.users = new Map();
@@ -54,6 +63,12 @@ export class MemStorage implements IStorage {
     this.categoriesCurrentId = 1;
     this.habitsCurrentId = 1;
     this.habitLogsCurrentId = 1;
+    
+    // Create memory session store
+    const MemoryStore = require('memorystore')(session);
+    this.sessionStore = new MemoryStore({
+      checkPeriod: 86400000 // prune expired entries every 24h
+    });
 
     // Add default categories
     this.initDefaultCategories();
@@ -102,7 +117,12 @@ export class MemStorage implements IStorage {
 
   async createCategory(insertCategory: InsertCategory): Promise<Category> {
     const id = this.categoriesCurrentId++;
-    const category: Category = { ...insertCategory, id };
+    // Ensure color property is present (use default if not provided)
+    const category: Category = { 
+      ...insertCategory, 
+      id,
+      color: insertCategory.color || "#6366f1" 
+    };
     this.categories.set(id, category);
     return category;
   }
@@ -138,6 +158,9 @@ export class MemStorage implements IStorage {
     const habit: Habit = { 
       ...insertHabit, 
       id, 
+      description: insertHabit.description || null,
+      frequency: insertHabit.frequency || "daily",
+      reminderTime: insertHabit.reminderTime || null,
       createdAt: new Date() 
     };
     this.habits.set(id, habit);
@@ -209,7 +232,11 @@ export class MemStorage implements IStorage {
 
   async createHabitLog(insertLog: InsertHabitLog): Promise<HabitLog> {
     const id = this.habitLogsCurrentId++;
-    const log: HabitLog = { ...insertLog, id };
+    const log: HabitLog = { 
+      ...insertLog, 
+      id,
+      completed: insertLog.completed !== undefined ? insertLog.completed : false
+    };
     this.habitLogs.set(id, log);
     return log;
   }
@@ -254,4 +281,250 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Database storage implementation
+export class DatabaseStorage implements IStorage {
+  db: ReturnType<typeof drizzle>;
+  pool: Pool;
+  sessionStore: session.Store;
+
+  constructor() {
+    this.pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+    });
+    
+    this.db = drizzle(this.pool);
+    
+    const PostgresSessionStore = connectPg(session);
+    this.sessionStore = new PostgresSessionStore({
+      pool: this.pool,
+      createTableIfMissing: true,
+    });
+  }
+
+  // User methods
+  async getUser(id: number): Promise<User | undefined> {
+    const results = await this.db.select().from(users).where(eq(users.id, id));
+    return results[0];
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const results = await this.db.select().from(users).where(eq(users.username, username));
+    return results[0];
+  }
+
+  async createUser(user: InsertUser): Promise<User> {
+    const results = await this.db.insert(users).values(user).returning();
+    return results[0];
+  }
+
+  // Category methods
+  async getCategories(): Promise<Category[]> {
+    return await this.db.select().from(categories);
+  }
+
+  async getCategory(id: number): Promise<Category | undefined> {
+    const results = await this.db.select().from(categories).where(eq(categories.id, id));
+    return results[0];
+  }
+
+  async createCategory(category: InsertCategory): Promise<Category> {
+    const results = await this.db.insert(categories).values(category).returning();
+    return results[0];
+  }
+
+  async updateCategory(id: number, category: Partial<InsertCategory>): Promise<Category | undefined> {
+    const results = await this.db.update(categories)
+      .set(category)
+      .where(eq(categories.id, id))
+      .returning();
+    return results[0];
+  }
+
+  async deleteCategory(id: number): Promise<boolean> {
+    const results = await this.db.delete(categories).where(eq(categories.id, id)).returning();
+    return results.length > 0;
+  }
+
+  // Habit methods
+  async getHabits(userId: number): Promise<Habit[]> {
+    return await this.db.select().from(habits).where(eq(habits.userId, userId)).orderBy(desc(habits.id));
+  }
+
+  async getHabit(id: number): Promise<Habit | undefined> {
+    const results = await this.db.select().from(habits).where(eq(habits.id, id));
+    return results[0];
+  }
+
+  async createHabit(habit: InsertHabit): Promise<Habit> {
+    const results = await this.db.insert(habits).values(habit).returning();
+    return results[0];
+  }
+
+  async updateHabit(id: number, habit: Partial<InsertHabit>): Promise<Habit | undefined> {
+    const results = await this.db.update(habits)
+      .set(habit)
+      .where(eq(habits.id, id))
+      .returning();
+    return results[0];
+  }
+
+  async deleteHabit(id: number): Promise<boolean> {
+    // Delete all related habit logs first
+    await this.db.delete(habitLogs).where(eq(habitLogs.habitId, id));
+    
+    // Then delete the habit
+    const results = await this.db.delete(habits).where(eq(habits.id, id)).returning();
+    return results.length > 0;
+  }
+
+  // Habit log methods
+  async getHabitLogs(habitId: number): Promise<HabitLog[]> {
+    return await this.db.select().from(habitLogs).where(eq(habitLogs.habitId, habitId));
+  }
+
+  async getHabitLogsByDate(userId: number, date: string): Promise<HabitLog[]> {
+    const normalizedDate = new Date(date).toISOString().split('T')[0]; // Format as YYYY-MM-DD
+    
+    // Get all logs for this user for this date
+    const userHabits = await this.getHabits(userId);
+    const habitIds = userHabits.map(habit => habit.id);
+    
+    if (habitIds.length === 0) {
+      return [];
+    }
+    
+    // For each habit, find the log for this date
+    const logs: HabitLog[] = [];
+    for (const habitId of habitIds) {
+      const habitLog = await this.getHabitLog(habitId, normalizedDate);
+      if (habitLog) {
+        logs.push(habitLog);
+      }
+    }
+    
+    return logs;
+  }
+
+  async getHabitLogsByDateRange(userId: number, startDate: string, endDate: string): Promise<HabitLog[]> {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    // Get all habits for this user
+    const userHabits = await this.getHabits(userId);
+    const habitIds = userHabits.map(habit => habit.id);
+    
+    if (habitIds.length === 0) {
+      return [];
+    }
+    
+    // For each habit, find logs within date range
+    const logs: HabitLog[] = [];
+    for (const habitId of habitIds) {
+      // Convert dates to string format for comparison
+      const startStr = start.toISOString().split('T')[0]; 
+      const endStr = end.toISOString().split('T')[0];
+      
+      const habitLogsResults = await this.db.select()
+        .from(habitLogs)
+        .where(
+          and(
+            eq(habitLogs.habitId, habitId),
+            between(habitLogs.date, startStr, endStr)
+          )
+        );
+      logs.push(...habitLogsResults);
+    }
+    
+    return logs;
+  }
+
+  async getHabitLog(habitId: number, date: string): Promise<HabitLog | undefined> {
+    const normalizedDate = new Date(date).toISOString().split('T')[0]; // Format as YYYY-MM-DD
+    
+    const results = await this.db.select()
+      .from(habitLogs)
+      .where(
+        and(
+          eq(habitLogs.habitId, habitId),
+          eq(habitLogs.date, normalizedDate)
+        )
+      );
+    
+    return results[0];
+  }
+
+  async createHabitLog(log: InsertHabitLog): Promise<HabitLog> {
+    // Ensure the date is normalized
+    const normalizedLog = {
+      ...log,
+      date: new Date(log.date).toISOString().split('T')[0]
+    };
+    
+    const results = await this.db.insert(habitLogs).values(normalizedLog).returning();
+    return results[0];
+  }
+
+  async updateHabitLog(id: number, log: Partial<InsertHabitLog>): Promise<HabitLog | undefined> {
+    // Normalize date if present
+    const normalizedLog = { ...log };
+    if (normalizedLog.date) {
+      normalizedLog.date = new Date(normalizedLog.date).toISOString().split('T')[0];
+    }
+    
+    const results = await this.db.update(habitLogs)
+      .set(normalizedLog)
+      .where(eq(habitLogs.id, id))
+      .returning();
+    
+    return results[0];
+  }
+
+  async toggleHabitCompletion(habitId: number, userId: number, date: string): Promise<HabitLog> {
+    const normalizedDate = new Date(date).toISOString().split('T')[0]; // Format as YYYY-MM-DD
+    
+    // Check if log exists for this habit and date
+    const existingLog = await this.getHabitLog(habitId, normalizedDate);
+    
+    if (existingLog) {
+      // Toggle completion status
+      const updated = await this.updateHabitLog(existingLog.id, { 
+        completed: !existingLog.completed 
+      });
+      
+      if (!updated) {
+        throw new Error("Failed to update habit log");
+      }
+      
+      return updated;
+    } else {
+      // Create new log with completed status
+      return await this.createHabitLog({
+        habitId,
+        userId,
+        date: normalizedDate,
+        completed: true
+      });
+    }
+  }
+  
+  // Initialize default categories if they don't exist
+  async initDefaultCategories() {
+    const existingCategories = await this.getCategories();
+    
+    if (existingCategories.length === 0) {
+      const defaultCategories: InsertCategory[] = [
+        { name: "Health", color: "#3b82f6" },
+        { name: "Productivity", color: "#10b981" },
+        { name: "Learning", color: "#8b5cf6" },
+        { name: "Wellness", color: "#22c55e" }
+      ];
+      
+      for (const category of defaultCategories) {
+        await this.createCategory(category);
+      }
+    }
+  }
+}
+
+// Create storage instance based on environment
+export const storage = new DatabaseStorage();

@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { 
@@ -8,10 +8,33 @@ import {
 } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
+import { setupAuth } from "./auth";
+
+// Add validatedBody property to Express Request interface
+declare global {
+  namespace Express {
+    interface Request {
+      validatedBody: any;
+    }
+  }
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Initialize auth setup
+  setupAuth(app);
+  
+  // Initialize default categories if needed
+  await (storage as any).initDefaultCategories?.();
+  
+  // Authentication middleware to protect routes
+  const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
+    if (req.isAuthenticated()) {
+      return next();
+    }
+    return res.status(401).json({ message: "Not authenticated" });
+  };
   // Error handling middleware for Zod validation
-  const validateRequest = (schema: any) => (req: any, res: any, next: any) => {
+  const validateRequest = (schema: any) => (req: Request, res: Response, next: NextFunction) => {
     try {
       req.validatedBody = schema.parse(req.body);
       next();
@@ -75,10 +98,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Habits routes
-  app.get("/api/habits", async (req, res) => {
+  app.get("/api/habits", isAuthenticated, async (req, res) => {
     try {
-      // For demo, we'll use user ID 1 since authentication is not implemented
-      const userId = 1;
+      const userId = req.user!.id;
       const habits = await storage.getHabits(userId);
       res.json(habits);
     } catch (error) {
@@ -86,7 +108,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/habits/:id", async (req, res) => {
+  app.get("/api/habits/:id", isAuthenticated, async (req, res) => {
     try {
       const habitId = parseInt(req.params.id);
       const habit = await storage.getHabit(habitId);
@@ -101,7 +123,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/habits", validateRequest(insertHabitSchema), async (req, res) => {
+  app.post("/api/habits", isAuthenticated, validateRequest(insertHabitSchema), async (req, res) => {
+    // Set userId from authenticated user
+    req.validatedBody.userId = req.user!.id;
     try {
       const newHabit = await storage.createHabit(req.validatedBody);
       res.status(201).json(newHabit);
@@ -110,7 +134,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/habits/:id", validateRequest(insertHabitSchema), async (req, res) => {
+  app.put("/api/habits/:id", isAuthenticated, validateRequest(insertHabitSchema), async (req, res) => {
+    // Ensure it's the user's habit
+    const habit = await storage.getHabit(parseInt(req.params.id));
+    if (!habit || habit.userId !== req.user!.id) {
+      return res.status(404).json({ message: "Habit not found" });
+    }
     try {
       const habitId = parseInt(req.params.id);
       const updatedHabit = await storage.updateHabit(habitId, req.validatedBody);
@@ -125,7 +154,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/habits/:id", async (req, res) => {
+  app.delete("/api/habits/:id", isAuthenticated, async (req, res) => {
+    // Ensure it's the user's habit
+    const habit = await storage.getHabit(parseInt(req.params.id));
+    if (!habit || habit.userId !== req.user!.id) {
+      return res.status(404).json({ message: "Habit not found" });
+    }
     try {
       const habitId = parseInt(req.params.id);
       const success = await storage.deleteHabit(habitId);
@@ -141,10 +175,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Habit logs routes
-  app.get("/api/habit-logs", async (req, res) => {
+  app.get("/api/habit-logs", isAuthenticated, async (req, res) => {
     try {
-      // For demo, we'll use user ID 1 since authentication is not implemented
-      const userId = 1;
+      const userId = req.user!.id;
       const { date, startDate, endDate } = req.query;
       
       if (startDate && endDate) {
@@ -165,7 +198,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/habits/:habitId/logs", async (req, res) => {
+  app.get("/api/habits/:habitId/logs", isAuthenticated, async (req, res) => {
+    // Ensure it's the user's habit
+    const habit = await storage.getHabit(parseInt(req.params.habitId));
+    if (!habit || habit.userId !== req.user!.id) {
+      return res.status(404).json({ message: "Habit not found" });
+    }
     try {
       const habitId = parseInt(req.params.habitId);
       const logs = await storage.getHabitLogs(habitId);
@@ -175,7 +213,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/habit-logs", validateRequest(insertHabitLogSchema), async (req, res) => {
+  app.post("/api/habit-logs", isAuthenticated, validateRequest(insertHabitLogSchema), async (req, res) => {
+    // Set userId from the authenticated user
+    req.validatedBody.userId = req.user!.id;
     try {
       const newLog = await storage.createHabitLog(req.validatedBody);
       res.status(201).json(newLog);
@@ -184,7 +224,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/habits/:habitId/toggle", async (req, res) => {
+  app.post("/api/habits/:habitId/toggle", isAuthenticated, async (req, res) => {
     try {
       const habitId = parseInt(req.params.habitId);
       const { date } = req.body;
@@ -193,8 +233,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Date is required" });
       }
       
-      // For demo, we'll use user ID 1 since authentication is not implemented
-      const userId = 1;
+      // Ensure it's the user's habit
+      const habit = await storage.getHabit(habitId);
+      if (!habit || habit.userId !== req.user!.id) {
+        return res.status(404).json({ message: "Habit not found" });
+      }
+      
+      const userId = req.user!.id;
       
       const updatedLog = await storage.toggleHabitCompletion(habitId, userId, date);
       res.json(updatedLog);
@@ -274,7 +319,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               await storage.createHabitLog({
                 habitId: habit.id,
                 userId: demoUser.id,
-                date: logDate,
+                date: logDate.toISOString().split('T')[0],
                 completed: true
               });
             }
