@@ -38,7 +38,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { XIcon } from "lucide-react";
-import { Category } from "@shared/schema";
+import { Category, Habit } from "@shared/schema";
 
 type FormValues = z.infer<typeof habitValidationSchema>;
 

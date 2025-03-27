@@ -29,7 +29,8 @@ export function HabitList({ selectedCategory, date = formatDate(new Date()) }: H
         throw new Error('Failed to fetch habit logs');
       }
       return response.json();
-    }
+    },
+    refetchOnWindowFocus: true
   });
 
   const isLoading = isLoadingHabits || isLoadingCategories || isLoadingLogs;
