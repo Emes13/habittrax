@@ -30,7 +30,9 @@ export function HabitList({ selectedCategory, date = formatDate(new Date()) }: H
       }
       return response.json();
     },
-    refetchOnWindowFocus: true
+    refetchOnWindowFocus: true,
+    staleTime: 0, // Always refetch
+    gcTime: 0     // Don't cache results (gcTime replaces cacheTime in TanStack Query v5)
   });
 
   const isLoading = isLoadingHabits || isLoadingCategories || isLoadingLogs;
@@ -77,17 +79,19 @@ export function HabitList({ selectedCategory, date = formatDate(new Date()) }: H
   const calculateHabitStreaks = (habitId: number) => {
     if (!habitLogs) return 0;
     
-    const completedDates = habitLogs
-      .filter(log => log.habitId === habitId && log.completed)
-      .map(log => new Date(log.date));
+    const completedDates = (habitLogs as HabitLog[])
+      .filter((log: HabitLog) => log.habitId === habitId && log.completed)
+      .map((log: HabitLog) => new Date(log.date));
     
     return getStreakCount(completedDates);
   };
 
   // Filter logs for the selected date
-  const currentDateLogs = habitLogs?.filter(log => 
-    formatDate(new Date(log.date)) === date
-  ) || [];
+  const currentDateLogs = habitLogs 
+    ? (habitLogs as HabitLog[]).filter((log: HabitLog) => 
+        formatDate(new Date(log.date)) === date
+      ) 
+    : [];
 
   return (
     <div className="space-y-4">

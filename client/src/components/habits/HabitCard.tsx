@@ -53,8 +53,15 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
       const response = await apiRequest("POST", `/api/habits/${habit.id}/toggle`, { date });
       return response.json();
     },
-    onSuccess: (data) => {
-      // Force update the UI with our new data
+    // Use optimistic updates for immediate feedback
+    onMutate: async () => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['/api/habit-logs', { date }] });
+      
+      // Get snapshot of the current state
+      const previousLogs = queryClient.getQueryData(['/api/habit-logs', { date }]);
+      
+      // Create optimistic update
       const updatedHabitLogsList = [...(logs || [])];
       const existingLogIndex = updatedHabitLogsList.findIndex(
         log => log.habitId === habit.id && formatDate(new Date(log.date)) === date
@@ -67,14 +74,26 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
           completed: !isCompleted
         };
       } else {
-        // Add new log
-        updatedHabitLogsList.push(data);
+        // Add new log (optimistically)
+        updatedHabitLogsList.push({
+          id: Date.now(), // Temporary ID
+          habitId: habit.id,
+          userId: 1,
+          date: date, // Using string date
+          completed: true
+        });
       }
       
-      // Invalidate queries for UI update
+      // Update the cache with our optimistic update
+      queryClient.setQueryData(['/api/habit-logs', { date }], updatedHabitLogsList);
+      
+      // Return the previous data so we can roll back if needed
+      return { previousLogs };
+    },
+    onSuccess: (data) => {
+      // Invalidate and refetch to sync with server
       queryClient.invalidateQueries({ queryKey: ['/api/habit-logs'] });
       queryClient.invalidateQueries({ queryKey: ['/api/habit-logs', { date }] });
-      queryClient.setQueryData(['/api/habit-logs', { date }], updatedHabitLogsList);
       
       toast({
         title: isCompleted ? "Habit marked as incomplete" : "Habit completed!",
@@ -82,13 +101,22 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
         variant: "default", // Only default and destructive are available
       });
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
+      // Roll back the optimistic update using the context we saved
+      if (context?.previousLogs) {
+        queryClient.setQueryData(['/api/habit-logs', { date }], context.previousLogs);
+      }
+      
       toast({
         title: "Error",
         description: "Failed to update habit completion status.",
         variant: "destructive",
       });
     },
+    onSettled: () => {
+      // Always refetch after error or success to ensure consistency
+      queryClient.invalidateQueries({ queryKey: ['/api/habit-logs', { date }] });
+    }
   });
 
   // Delete habit mutation

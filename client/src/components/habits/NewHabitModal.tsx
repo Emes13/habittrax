@@ -185,7 +185,11 @@ export function NewHabitModal() {
                     <Textarea
                       placeholder="Why this habit is important to you"
                       rows={2}
-                      {...field}
+                      value={field.value || ''} // Ensure value is always a string
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                      ref={field.ref}
                     />
                   </FormControl>
                   <FormMessage />
