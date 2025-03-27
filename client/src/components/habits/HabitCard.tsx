@@ -38,6 +38,7 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/habit-logs'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/habit-logs', { date }] });
       toast({
         title: isCompleted ? "Habit marked as incomplete" : "Habit completed!",
         description: isCompleted ? "Keep working on your habits!" : "Great job keeping up with your habits!",

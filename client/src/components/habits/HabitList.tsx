@@ -22,7 +22,14 @@ export function HabitList({ selectedCategory, date = formatDate(new Date()) }: H
   startDate.setDate(startDate.getDate() - 30); // Get logs for last 30 days for streak calculation
   
   const { data: habitLogs, isLoading: isLoadingLogs } = useQuery<HabitLog[]>({
-    queryKey: ['/api/habit-logs', { startDate: formatDate(startDate), endDate: date }],
+    queryKey: ['/api/habit-logs', { date }],
+    queryFn: async ({ queryKey }) => {
+      const response = await fetch(`/api/habit-logs?date=${date}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch habit logs');
+      }
+      return response.json();
+    }
   });
 
   const isLoading = isLoadingHabits || isLoadingCategories || isLoadingLogs;

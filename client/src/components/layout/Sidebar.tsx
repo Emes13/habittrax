@@ -42,7 +42,7 @@ export default function Sidebar({ className }: SidebarProps) {
                   className={cn(
                     "flex items-center px-4 py-2 rounded-lg",
                     location === item.href
-                      ? "bg-primary bg-opacity-10 text-primary"
+                      ? "bg-primary/10 text-primary font-medium"
                       : "text-gray-700 hover:bg-gray-100"
                   )}
                 >
