@@ -79,6 +79,7 @@ export type InsertHabitLog = z.infer<typeof insertHabitLogSchema>;
 // Extended schemas with validations for frontend
 export const habitValidationSchema = insertHabitSchema.extend({
   name: z.string().min(1, "Habit name is required").max(100, "Habit name must be less than 100 characters"),
+  reminderTime: z.string().default("none"),
 });
 
 export const categoryValidationSchema = insertCategorySchema.extend({

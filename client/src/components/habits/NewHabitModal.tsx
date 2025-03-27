@@ -55,7 +55,7 @@ export function NewHabitModal() {
   });
 
   // Prefetch habit data if editing
-  const { data: editingHabit } = useQuery({
+  const { data: editingHabit } = useQuery<Habit | undefined>({
     queryKey: ['/api/habits', editingHabitId],
     enabled: !!editingHabitId,
   });
@@ -67,7 +67,7 @@ export function NewHabitModal() {
       description: editingHabit?.description || "",
       categoryId: editingHabit?.categoryId || 1,
       frequency: editingHabit?.frequency || "daily",
-      reminderTime: editingHabit?.reminderTime || "",
+      reminderTime: editingHabit?.reminderTime || "none",
       userId: 1, // For demo, we'll use user ID 1
     },
   });
@@ -80,7 +80,7 @@ export function NewHabitModal() {
         description: editingHabit.description || "",
         categoryId: editingHabit.categoryId,
         frequency: editingHabit.frequency,
-        reminderTime: editingHabit.reminderTime || "",
+        reminderTime: editingHabit.reminderTime || "none",
         userId: editingHabit.userId,
       });
       
@@ -91,7 +91,7 @@ export function NewHabitModal() {
         description: "",
         categoryId: categories?.[0]?.id || 1,
         frequency: "daily",
-        reminderTime: "",
+        reminderTime: "none",
         userId: 1,
       });
       
@@ -134,7 +134,7 @@ export function NewHabitModal() {
   };
 
   const reminderOptions = [
-    { value: "", label: "No reminder" },
+    { value: "none", label: "No reminder" },
     { value: "morning", label: "Morning (8:00 AM)" },
     { value: "afternoon", label: "Afternoon (1:00 PM)" },
     { value: "evening", label: "Evening (7:00 PM)" },
