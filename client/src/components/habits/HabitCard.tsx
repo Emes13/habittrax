@@ -100,10 +100,13 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
       queryClient.invalidateQueries({ queryKey: ['/api/habit-logs'] });
       queryClient.invalidateQueries({ queryKey: ['/api/habit-logs', { date }] });
       
-      // Here !isCompleted represents the new state after toggling
+      // Use data returned from the server to determine the toast message
+      // The data contains the newly toggled habit log
+      const newCompletionState = data.completed;
+      
       toast({
-        title: !isCompleted ? "Habit completed!" : "Habit marked as incomplete",
-        description: !isCompleted ? "Great job keeping up with your habits!" : "You can still complete it later!",
+        title: newCompletionState ? "Habit completed!" : "Habit marked as incomplete",
+        description: newCompletionState ? "Great job keeping up with your habits!" : "You can still complete it later!",
         variant: "default", // Only default and destructive are available
       });
     },
