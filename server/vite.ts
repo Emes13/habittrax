@@ -20,6 +20,11 @@ export function log(message: string, source = "express") {
 }
 
 export async function setupVite(app: Express, server: Server) {
+  // Only import vite in development
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("setupVite should not be called in production");
+  }
+
   const { createServer: createViteServer, createLogger } = await import("vite");
 
   const viteLogger = createLogger();
@@ -27,7 +32,7 @@ export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
     middlewareMode: true,
     hmr: { server },
-    allowedHosts: true,
+    allowedHosts: true as const, // Fix TypeScript error by using 'as const'
   };
 
   const vite = await createViteServer({
