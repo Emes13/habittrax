@@ -1,15 +1,15 @@
 import { create } from 'zustand';
 
-type HabitModalState = {
+interface HabitModalStore {
   isOpen: boolean;
-  editingHabitId: number | null;
+  editingHabitId: number | undefined;
   openModal: (habitId?: number) => void;
   closeModal: () => void;
-};
+}
 
-export const useHabitModal = create<HabitModalState>((set) => ({
+export const useHabitModal = create<HabitModalStore>((set) => ({
   isOpen: false,
-  editingHabitId: null,
-  openModal: (habitId = null) => set({ isOpen: true, editingHabitId: habitId }),
-  closeModal: () => set({ isOpen: false, editingHabitId: null }),
+  editingHabitId: undefined,
+  openModal: (habitId?: number) => set({ isOpen: true, editingHabitId: habitId }),
+  closeModal: () => set({ isOpen: false, editingHabitId: undefined }),
 }));
