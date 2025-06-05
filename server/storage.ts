@@ -156,13 +156,15 @@ export class MemStorage implements IStorage {
 
   async createHabit(insertHabit: InsertHabit): Promise<Habit> {
     const id = this.habitsCurrentId++;
-    const habit: Habit = { 
-      ...insertHabit, 
-      id, 
+    const habit: Habit = {
+      ...insertHabit,
+      id,
       description: insertHabit.description || null,
       frequency: insertHabit.frequency || "daily",
+      startDay: insertHabit.startDay ?? null,
+      daysOfWeek: insertHabit.daysOfWeek ?? null,
       reminderTime: insertHabit.reminderTime || null,
-      createdAt: new Date() 
+      createdAt: new Date()
     };
     this.habits.set(id, habit);
     return habit;
