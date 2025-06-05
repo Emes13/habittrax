@@ -67,6 +67,8 @@ export function NewHabitModal() {
       description: editingHabit?.description || "",
       categoryId: editingHabit?.categoryId || 1,
       frequency: editingHabit?.frequency || "daily",
+      startDay: editingHabit?.startDay ?? 0,
+      daysOfWeek: editingHabit?.daysOfWeek ?? [],
       reminderTime: editingHabit?.reminderTime || "none",
       userId: 1, // For demo, we'll use user ID 1
     },
@@ -80,6 +82,8 @@ export function NewHabitModal() {
         description: editingHabit.description || "",
         categoryId: editingHabit.categoryId,
         frequency: editingHabit.frequency,
+        startDay: editingHabit.startDay ?? 0,
+        daysOfWeek: editingHabit.daysOfWeek ?? [],
         reminderTime: editingHabit.reminderTime || "none",
         userId: editingHabit.userId,
       });
@@ -91,6 +95,8 @@ export function NewHabitModal() {
         description: "",
         categoryId: categories?.[0]?.id || 1,
         frequency: "daily",
+        startDay: 0,
+        daysOfWeek: [],
         reminderTime: "none",
         userId: 1,
       });
@@ -140,6 +146,8 @@ export function NewHabitModal() {
     { value: "evening", label: "Evening (7:00 PM)" },
     { value: "anytime", label: "Anytime" },
   ];
+
+  const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
   const frequencies = [
     { value: "daily", label: "Daily" },
@@ -259,6 +267,71 @@ export function NewHabitModal() {
                 </FormItem>
               )}
             />
+
+            {selectedFrequency === 'weekly' && (
+              <FormField
+                control={form.control}
+                name="startDay"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Start Day</FormLabel>
+                    <div className="flex flex-wrap gap-2">
+                      {weekdays.map((day, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => field.onChange(idx)}
+                          className={cn(
+                            'px-3 py-1.5 rounded-lg text-sm',
+                            field.value === idx ? 'bg-primary text-white' : 'bg-gray-100 text-gray-800'
+                          )}
+                        >
+                          {day}
+                        </button>
+                      ))}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {selectedFrequency === 'custom' && (
+              <FormField
+                control={form.control}
+                name="daysOfWeek"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Select Days</FormLabel>
+                    <div className="flex flex-wrap gap-2">
+                      {weekdays.map((day, idx) => {
+                        const selected = Array.isArray(field.value) && field.value.includes(idx);
+                        return (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => {
+                              const current = Array.isArray(field.value) ? field.value : [];
+                              const newVal = selected
+                                ? current.filter((d) => d !== idx)
+                                : [...current, idx];
+                              field.onChange(newVal);
+                            }}
+                            className={cn(
+                              'px-3 py-1.5 rounded-lg text-sm',
+                              selected ? 'bg-primary text-white' : 'bg-gray-100 text-gray-800'
+                            )}
+                          >
+                            {day}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
             
             <FormField
               control={form.control}

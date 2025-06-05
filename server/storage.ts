@@ -156,13 +156,15 @@ export class MemStorage implements IStorage {
 
   async createHabit(insertHabit: InsertHabit): Promise<Habit> {
     const id = this.habitsCurrentId++;
-    const habit: Habit = { 
-      ...insertHabit, 
-      id, 
+    const habit: Habit = {
+      ...insertHabit,
+      id,
       description: insertHabit.description || null,
       frequency: insertHabit.frequency || "daily",
+      startDay: insertHabit.startDay ?? null,
+      daysOfWeek: insertHabit.daysOfWeek ?? null,
       reminderTime: insertHabit.reminderTime || null,
-      createdAt: new Date() 
+      createdAt: new Date()
     };
     this.habits.set(id, habit);
     return habit;
@@ -292,7 +294,7 @@ export class DatabaseStorage implements IStorage {
     this.pool = new Pool({
       connectionString: process.env.DATABASE_URL,
     });
-    
+
     this.db = drizzle(this.pool);
     
     const PostgresSessionStore = connectPg(session);
@@ -300,6 +302,25 @@ export class DatabaseStorage implements IStorage {
       pool: this.pool,
       createTableIfMissing: true,
     });
+
+    // Ensure new columns exist when the server starts
+    this.ensureHabitColumns().catch((err) => {
+      console.error('Failed to ensure habit columns', err);
+    });
+  }
+
+  // Check for newly added columns and create them if missing
+  private async ensureHabitColumns() {
+    const res = await this.pool.query(
+      `SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'habits'`
+    );
+    const cols = res.rows.map((r: any) => r.column_name);
+    if (!cols.includes('start_day')) {
+      await this.pool.query('ALTER TABLE habits ADD COLUMN start_day integer');
+    }
+    if (!cols.includes('days_of_week')) {
+      await this.pool.query('ALTER TABLE habits ADD COLUMN days_of_week integer[]');
+    }
   }
 
   // User methods

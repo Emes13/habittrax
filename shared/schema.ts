@@ -33,6 +33,8 @@ export const habits = pgTable("habits", {
   description: text("description"),
   categoryId: integer("category_id").notNull(),
   frequency: text("frequency").notNull().default("daily"), // daily, weekly, custom
+  startDay: integer("start_day"), // 0(Monday) - 6(Sunday)
+  daysOfWeek: integer("days_of_week").array(), // for custom frequency
   reminderTime: text("reminder_time"),
   userId: integer("user_id").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -43,6 +45,8 @@ export const insertHabitSchema = createInsertSchema(habits).pick({
   description: true,
   categoryId: true,
   frequency: true,
+  startDay: true,
+  daysOfWeek: true,
   reminderTime: true,
   userId: true,
 });
@@ -80,6 +84,8 @@ export type InsertHabitLog = z.infer<typeof insertHabitLogSchema>;
 export const habitValidationSchema = insertHabitSchema.extend({
   name: z.string().min(1, "Habit name is required").max(100, "Habit name must be less than 100 characters"),
   reminderTime: z.string().default("none"),
+  startDay: z.number().min(0).max(6).optional(),
+  daysOfWeek: z.array(z.number().min(0).max(6)).optional(),
 });
 
 export const categoryValidationSchema = insertCategorySchema.extend({

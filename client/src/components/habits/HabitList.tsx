@@ -75,6 +75,27 @@ export function HabitList({ selectedCategory, date = formatDate(new Date()) }: H
     ? habits
     : habits.filter(habit => habit.categoryId.toString() === selectedCategory);
 
+  const getWeekdayIndex = (d: Date) => {
+    const jsDay = d.getDay(); // 0 Sunday - 6 Saturday
+    return (jsDay + 6) % 7; // convert to Monday=0
+  };
+
+  const isHabitActiveOnDate = (habit: Habit, currentDate: Date) => {
+    const dayIndex = getWeekdayIndex(currentDate);
+
+    if (habit.frequency === 'daily') return true;
+    if (habit.frequency === 'weekly') {
+      return habit.startDay === dayIndex;
+    }
+    if (habit.frequency === 'custom') {
+      return Array.isArray(habit.daysOfWeek) && habit.daysOfWeek.includes(dayIndex);
+    }
+    return true;
+  };
+
+  const dateObj = new Date(date);
+  const activeHabits = filteredHabits.filter(habit => isHabitActiveOnDate(habit, dateObj));
+
   // Calculate streaks for each habit
   const calculateHabitStreaks = (habitId: number) => {
     if (!habitLogs) return 0;
@@ -97,7 +118,7 @@ export function HabitList({ selectedCategory, date = formatDate(new Date()) }: H
 
   return (
     <div className="space-y-4">
-      {filteredHabits.map((habit) => (
+      {activeHabits.map((habit) => (
         <HabitCard
           key={habit.id}
           habit={habit}
@@ -107,8 +128,8 @@ export function HabitList({ selectedCategory, date = formatDate(new Date()) }: H
           streak={calculateHabitStreaks(habit.id)}
         />
       ))}
-      
-      {filteredHabits.length === 0 && (
+
+      {activeHabits.length === 0 && (
         <div className="bg-white rounded-xl shadow-sm p-6 text-center">
           <p className="text-gray-600">No habits found in this category.</p>
         </div>
