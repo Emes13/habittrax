@@ -8,7 +8,8 @@ import {
   formatDate,
   formatShortWeekday,
   formatDayNumber,
-  isToday
+  isToday,
+  parseLocalDate
 } from "@/lib/dates";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { format } from "date-fns";
@@ -55,7 +56,7 @@ export function WeeklyCalendar({ onSelectDate, selectedDate }: WeeklyCalendarPro
     if (!habitLogs) return 0;
     
     const formattedDate = formatDate(date);
-    const logsForDay = habitLogs.filter(log => formatDate(new Date(log.date)) === formattedDate);
+    const logsForDay = habitLogs.filter(log => formatDate(parseLocalDate(log.date)) === formattedDate);
     
     if (logsForDay.length === 0) return 0;
     

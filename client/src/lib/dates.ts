@@ -16,6 +16,12 @@ export function formatDayNumber(date: Date): string {
   return format(date, "d");
 }
 
+// Parse a YYYY-MM-DD string as a local date (avoids timezone offsets)
+export function parseLocalDate(dateStr: string): Date {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
 export function getCurrentWeekDates(): { start: Date; end: Date; days: Date[] } {
   const today = new Date();
   const start = startOfWeek(today, { weekStartsOn: 1 }); // Start on Monday

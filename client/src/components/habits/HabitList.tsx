@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Habit, Category, HabitLog } from "@shared/schema";
 import { HabitCard } from "./HabitCard";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getStreakCount, formatDate } from "@/lib/dates";
+import { getStreakCount, formatDate, parseLocalDate } from "@/lib/dates";
 
 interface HabitListProps {
   selectedCategory: string;
@@ -93,7 +93,7 @@ export function HabitList({ selectedCategory, date = formatDate(new Date()) }: H
     return true;
   };
 
-  const dateObj = new Date(date);
+  const dateObj = parseLocalDate(date);
   const activeHabits = filteredHabits.filter(habit => isHabitActiveOnDate(habit, dateObj));
 
   // Calculate streaks for each habit
@@ -102,7 +102,7 @@ export function HabitList({ selectedCategory, date = formatDate(new Date()) }: H
     
     const completedDates = (habitLogs as HabitLog[])
       .filter((log: HabitLog) => log.habitId === habitId && log.completed)
-      .map((log: HabitLog) => new Date(log.date));
+      .map((log: HabitLog) => parseLocalDate(log.date));
     
     return getStreakCount(completedDates);
   };
@@ -110,8 +110,8 @@ export function HabitList({ selectedCategory, date = formatDate(new Date()) }: H
   // Filter logs for the selected date
   const currentDateLogs = habitLogs 
     ? (habitLogs as HabitLog[]).filter((log: HabitLog) => {
-        const logDate = new Date(log.date).toISOString().split('T')[0]; 
-        const compareDate = new Date(date).toISOString().split('T')[0];
+        const logDate = parseLocalDate(log.date).toISOString().split('T')[0];
+        const compareDate = parseLocalDate(date).toISOString().split('T')[0];
         return logDate === compareDate;
       }) 
     : [];
