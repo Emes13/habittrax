@@ -1,4 +1,5 @@
 import { format, subDays, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from "date-fns";
+import { toJewishDate } from "jewish-date";
 
 export function formatDate(date: Date): string {
   return format(date, "yyyy-MM-dd");
@@ -14,6 +15,11 @@ export function formatShortWeekday(date: Date): string {
 
 export function formatDayNumber(date: Date): string {
   return format(date, "d");
+}
+
+export function formatHebrewDate(date: Date): string {
+  const { day, monthName } = toJewishDate(date);
+  return `${day} ${monthName}`;
 }
 
 // Parse a YYYY-MM-DD string as a local date (avoids timezone offsets)
