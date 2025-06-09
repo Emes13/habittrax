@@ -3,6 +3,7 @@ import { Habit, Category, HabitLog } from "@shared/schema";
 import { HabitCard } from "./HabitCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getStreakCount, formatDate, parseLocalDate } from "@/lib/dates";
+import { isHabitActiveOnDate } from "@/lib/habitUtils";
 
 interface HabitListProps {
   selectedCategory: string;
@@ -75,23 +76,7 @@ export function HabitList({ selectedCategory, date = formatDate(new Date()) }: H
     ? habits
     : habits.filter(habit => habit.categoryId.toString() === selectedCategory);
 
-  const getWeekdayIndex = (d: Date) => {
-    const jsDay = d.getDay(); // 0 Sunday - 6 Saturday
-    return (jsDay + 6) % 7; // convert to Monday=0
-  };
 
-  const isHabitActiveOnDate = (habit: Habit, currentDate: Date) => {
-    const dayIndex = getWeekdayIndex(currentDate);
-
-    if (habit.frequency === 'daily') return true;
-    if (habit.frequency === 'weekly') {
-      return habit.startDay === dayIndex;
-    }
-    if (habit.frequency === 'custom') {
-      return Array.isArray(habit.daysOfWeek) && habit.daysOfWeek.includes(dayIndex);
-    }
-    return true;
-  };
 
   const dateObj = parseLocalDate(date);
   const activeHabits = filteredHabits.filter(habit => isHabitActiveOnDate(habit, dateObj));
