@@ -19,7 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { formatDate } from "@/lib/dates";
+import { formatDate, parseLocalDate } from "@/lib/dates";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -43,8 +43,8 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
   // Find if habit is completed for the given date
   const habitLog = logs.find(log => {
     // Standardize date formats for comparison
-    const logDate = new Date(log.date).toISOString().split('T')[0];
-    const compareDate = new Date(date).toISOString().split('T')[0];
+    const logDate = parseLocalDate(log.date).toISOString().split('T')[0];
+    const compareDate = parseLocalDate(date).toISOString().split('T')[0];
     return log.habitId === habit.id && logDate === compareDate;
   });
   
@@ -67,8 +67,8 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
       // Create optimistic update
       const updatedHabitLogsList = [...(logs || [])];
       const existingLogIndex = updatedHabitLogsList.findIndex(log => {
-        const logDate = new Date(log.date).toISOString().split('T')[0];
-        const compareDate = new Date(date).toISOString().split('T')[0];
+        const logDate = parseLocalDate(log.date).toISOString().split('T')[0];
+        const compareDate = parseLocalDate(date).toISOString().split('T')[0];
         return log.habitId === habit.id && logDate === compareDate;
       });
       

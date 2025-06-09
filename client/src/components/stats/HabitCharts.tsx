@@ -15,7 +15,7 @@ import {
 } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { eachDayOfInterval, format, subMonths, isEqual } from "date-fns";
-import { formatDate } from "@/lib/dates";
+import { formatDate, parseLocalDate } from "@/lib/dates";
 
 export function HabitCharts() {
   const { data: habits, isLoading: isLoadingHabits } = useQuery<Habit[]>({
@@ -110,10 +110,10 @@ export function HabitCharts() {
   });
   
   const monthlyTrendData = Object.entries(dateGroups).map(([dateStr, label]) => {
-    const date = new Date(dateStr);
+    const date = parseLocalDate(dateStr);
     
     const dayLogs = habitLogs.filter(log => {
-      const logDate = new Date(log.date);
+      const logDate = parseLocalDate(log.date);
       return isEqual(
         new Date(logDate.getFullYear(), logDate.getMonth(), logDate.getDate()),
         new Date(date.getFullYear(), date.getMonth(), date.getDate())
