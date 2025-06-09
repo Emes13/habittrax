@@ -1,7 +1,8 @@
 import { CircularProgress } from "@/components/ui/circular-progress";
 import { useQuery } from "@tanstack/react-query";
 import { HabitLog, Habit } from "@shared/schema";
-import { formatDate } from "@/lib/dates";
+import { formatDate, parseLocalDate } from "@/lib/dates";
+import { isHabitActiveOnDate } from "@/lib/habitUtils";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface CircularProgressDisplayProps {
@@ -71,9 +72,14 @@ export function CircularProgressDisplay({ date = formatDate(new Date()) }: Circu
     );
   }
   
-  // Calculate completion statistics
-  const totalHabits = habits.length;
-  const completedHabits = habitLogs.filter(log => log.completed).length;
+  // Calculate completion statistics based on habits active for the selected date
+  const dateObj = parseLocalDate(date);
+  const activeHabits = habits.filter(habit => isHabitActiveOnDate(habit, dateObj));
+  const activeHabitIds = activeHabits.map(h => h.id);
+  const totalHabits = activeHabits.length;
+  const completedHabits = habitLogs.filter(
+    log => log.completed && activeHabitIds.includes(log.habitId)
+  ).length;
   const completionRate = totalHabits > 0 ? (completedHabits / totalHabits) * 100 : 0;
   
   return (

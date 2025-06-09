@@ -16,6 +16,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { eachDayOfInterval, format, subMonths, isEqual } from "date-fns";
 import { formatDate, parseLocalDate } from "@/lib/dates";
+import { isHabitActiveOnDate } from "@/lib/habitUtils";
 
 export function HabitCharts() {
   const { data: habits, isLoading: isLoadingHabits } = useQuery<Habit[]>({
@@ -111,19 +112,25 @@ export function HabitCharts() {
   
   const monthlyTrendData = Object.entries(dateGroups).map(([dateStr, label]) => {
     const date = parseLocalDate(dateStr);
-    
+
+    const activeHabits = habits.filter(h => isHabitActiveOnDate(h, date));
+    const activeIds = activeHabits.map(h => h.id);
+
     const dayLogs = habitLogs.filter(log => {
       const logDate = parseLocalDate(log.date);
-      return isEqual(
-        new Date(logDate.getFullYear(), logDate.getMonth(), logDate.getDate()),
-        new Date(date.getFullYear(), date.getMonth(), date.getDate())
+      return (
+        isEqual(
+          new Date(logDate.getFullYear(), logDate.getMonth(), logDate.getDate()),
+          new Date(date.getFullYear(), date.getMonth(), date.getDate())
+        ) && activeIds.includes(log.habitId)
       );
     });
-    
-    const totalLogs = dayLogs.length;
+
     const completedLogs = dayLogs.filter(log => log.completed).length;
-    
-    const completionRate = totalLogs > 0 ? (completedLogs / totalLogs) * 100 : 0;
+
+    const completionRate = activeHabits.length > 0
+      ? (completedLogs / activeHabits.length) * 100
+      : 0;
     
     return {
       date: dateStr,

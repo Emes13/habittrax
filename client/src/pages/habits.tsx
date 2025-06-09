@@ -8,16 +8,23 @@ import { WeeklyCalendar } from "@/components/stats/WeeklyCalendar";
 import CategoryFilter from "@/components/CategoryFilter";
 import { Button } from "@/components/ui/button";
 import { useHabitModal } from "@/lib/hooks/use-habit-modal";
+import ReminderChecker from "@/components/ReminderChecker";
+import { Habit } from "@shared/schema";
 
 export default function Habits() {
   const [selectedDate, setSelectedDate] = useState(formatDate(new Date()));
   const [selectedCategory, setSelectedCategory] = useState('all');
   const { openModal } = useHabitModal();
 
+  const { data: habits } = useQuery<Habit[]>({
+    queryKey: ['/api/habits'],
+  });
+
   const displayDate = formatDisplayDate(new Date(selectedDate));
 
   return (
     <div className="p-4 md:p-6">
+      {habits && <ReminderChecker habits={habits} />}
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
         <div>
