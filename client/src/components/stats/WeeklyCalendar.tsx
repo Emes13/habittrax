@@ -8,6 +8,7 @@ import {
   formatDate,
   formatShortWeekday,
   formatDayNumber,
+  formatHebrewDate,
   isToday,
   parseLocalDate
 } from "@/lib/dates";
@@ -137,12 +138,15 @@ export function WeeklyCalendar({ onSelectDate, selectedDate }: WeeklyCalendarPro
                   {formatDayNumber(day)}
                 </span>
               </button>
-              <div 
+              <div
                 className={`mt-2 w-8 h-1.5 rounded-full ${
                   isSelected ? 'bg-primary' : 'bg-primary/50'
                 }`}
                 style={{ opacity }}
               ></div>
+              <span className="text-[10px] text-gray-500 mt-1">
+                {formatHebrewDate(day)}
+              </span>
             </div>
           );
         })}
