@@ -43,15 +43,20 @@ const ReminderChecker = ({ habits }: Props) => {
 
         if (!isHabitActiveOnDate(habit, now)) return;
 
-        const doneToday = habitLogs?.some(
+        const todayLog = habitLogs?.find(
           (log) =>
             log.habitId === habit.id &&
-            log.status === "complete" &&
             log.date.startsWith(todayIso)
         );
 
-        if (!doneToday && currentHour >= reminderHour) {
-          toast.info(`Reminder: ${habit.name}`);
+        const isComplete = todayLog?.status === "complete";
+        const isPartial = todayLog?.status === "partial";
+
+        if (!isComplete && currentHour >= reminderHour) {
+          const message = isPartial
+            ? `Keep going: ${habit.name} is partially complete`
+            : `Reminder: ${habit.name}`;
+          toast.info(message);
           remindedIds.current.add(habit.id);
         }
       });

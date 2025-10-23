@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { Habit, HabitLog, HabitStatus } from "@shared/schema";
+import { Habit, HabitLog } from "@shared/schema";
 import { formatDisplayDate, formatDate } from "@/lib/dates";
 import { HabitCharts } from "@/components/stats/HabitCharts";
 import { Skeleton } from "@/components/ui/skeleton";
+import { isHabitActiveOnDate } from "@/lib/habitUtils";
 
 export default function Statistics() {
   const today = new Date();
@@ -27,18 +28,16 @@ export default function Statistics() {
   
   const isLoading = isLoadingHabits || isLoadingLogs;
   
-  const statusWeights: Record<HabitStatus, number> = {
-    complete: 1,
-    partial: 0.5,
-    incomplete: 0,
-  };
-
   // Calculate overall stats
   const totalHabits = habits?.length || 0;
-  const completedToday = todayLogs?.filter(log => log.status === "complete").length || 0;
-  const partialToday = todayLogs?.filter(log => log.status === "partial").length || 0;
-  const weightedToday = todayLogs?.reduce((sum, log) => sum + statusWeights[log.status], 0) || 0;
-  const completionRate = totalHabits > 0 ? (weightedToday / totalHabits) * 100 : 0;
+  const activeHabitsToday = habits?.filter(habit => isHabitActiveOnDate(habit, today)) ?? [];
+  const activeHabitIds = new Set(activeHabitsToday.map(habit => habit.id));
+  const todayActiveLogs = todayLogs?.filter(log => activeHabitIds.has(log.habitId)) ?? [];
+  const completedToday = todayActiveLogs.filter(log => log.status === "complete").length;
+  const partialToday = todayActiveLogs.filter(log => log.status === "partial").length;
+  const completionRate = activeHabitsToday.length > 0
+    ? (completedToday / activeHabitsToday.length) * 100
+    : 0;
   
   return (
     <div className="p-4 md:p-6">
