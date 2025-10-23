@@ -11,3 +11,105 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+@layer components {
+  .status-badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide;
+  }
+
+  .status-badge--success {
+    @apply bg-success text-success-foreground;
+  }
+
+  .status-badge--warning {
+    @apply bg-warning text-warning-foreground;
+  }
+
+  .status-badge--danger {
+    @apply bg-destructive text-destructive-foreground;
+  }
+
+  .status-button {
+    @apply flex h-8 w-8 items-center justify-center rounded-full text-xs font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
+  }
+
+  .status-button--success {
+    @apply bg-success text-success-foreground shadow-sm hover:bg-success/90 focus-visible:ring-success/40;
+  }
+
+  .status-button--success-muted {
+    @apply border border-success/50 bg-white text-success hover:bg-success/10 focus-visible:ring-success/30;
+  }
+
+  .status-button--warning {
+    @apply bg-warning text-warning-foreground shadow-sm hover:bg-warning/90 focus-visible:ring-warning/40;
+  }
+
+  .status-button--warning-muted {
+    @apply border border-warning/50 bg-white text-warning hover:bg-warning/10 focus-visible:ring-warning/30;
+  }
+
+  .status-button--danger {
+    @apply bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90 focus-visible:ring-destructive/40;
+  }
+
+  .status-button--danger-muted {
+    @apply border border-destructive/50 bg-white text-destructive hover:bg-destructive/10 focus-visible:ring-destructive/30;
+  }
+
+  .status-icon {
+    @apply h-4 w-4;
+  }
+
+  .status-icon--success {
+    @apply text-success;
+  }
+
+  .status-icon--warning {
+    @apply text-warning;
+  }
+
+  .status-icon--danger {
+    @apply text-destructive;
+  }
+
+  .status-tile {
+    @apply flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
+  }
+
+  .status-tile--success {
+    @apply bg-success text-success-foreground hover:bg-success/90 focus-visible:ring-success/40;
+  }
+
+  .status-tile--warning {
+    @apply bg-warning text-warning-foreground hover:bg-warning/90 focus-visible:ring-warning/40;
+  }
+
+  .status-tile--danger {
+    @apply bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-destructive/40;
+  }
+
+  .status-tile--neutral {
+    @apply bg-gray-100 text-gray-700 hover:bg-gray-200 focus-visible:ring-gray-300;
+  }
+
+  .status-tile--today {
+    @apply bg-primary/10 text-primary hover:bg-primary/20 focus-visible:ring-primary/40;
+  }
+
+  .status-meter--success {
+    @apply bg-success;
+  }
+
+  .status-meter--warning {
+    @apply bg-warning;
+  }
+
+  .status-meter--danger {
+    @apply bg-destructive;
+  }
+
+  .status-meter--neutral {
+    @apply bg-gray-300;
+  }
+}

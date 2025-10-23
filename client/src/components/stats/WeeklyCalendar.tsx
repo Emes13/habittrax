@@ -80,20 +80,20 @@ export function WeeklyCalendar({ onSelectDate, selectedDate }: WeeklyCalendarPro
 
   const dayToneClasses: Record<DayStatus, { button: string; bar: string }> = {
     complete: {
-      button: "bg-success text-success-foreground hover:bg-success/90",
-      bar: "bg-success",
+      button: "status-tile status-tile--success",
+      bar: "status-meter--success",
     },
     partial: {
-      button: "bg-warning text-warning-foreground hover:bg-warning/90",
-      bar: "bg-warning",
+      button: "status-tile status-tile--warning",
+      bar: "status-meter--warning",
     },
     incomplete: {
-      button: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-      bar: "bg-destructive",
+      button: "status-tile status-tile--danger",
+      bar: "status-meter--danger",
     },
     none: {
-      button: "bg-gray-100 text-gray-700 hover:bg-gray-200",
-      bar: "bg-gray-300",
+      button: "status-tile status-tile--neutral",
+      bar: "status-meter--neutral",
     },
   };
   
@@ -158,8 +158,8 @@ export function WeeklyCalendar({ onSelectDate, selectedDate }: WeeklyCalendarPro
               <button
                 onClick={() => onSelectDate(dateStr)}
                 className={cn(
-                  "w-10 h-10 rounded-lg flex items-center justify-center text-sm font-medium transition-colors",
-                  dayIsToday && dayStatus === "none" ? "bg-primary/10 text-primary" : tone.button,
+                  tone.button,
+                  dayIsToday && dayStatus === "none" && "status-tile--today",
                   isSelected && "ring-2 ring-offset-2 ring-primary"
                 )}
               >

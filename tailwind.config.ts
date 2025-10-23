@@ -38,15 +38,15 @@ export default {
           foreground: "hsl(var(--accent-foreground))",
         },
         destructive: {
-          DEFAULT: "hsl(var(--destructive))",
-          foreground: "hsl(var(--destructive-foreground))",
+          DEFAULT: "hsl(354, 70%, 42%)",
+          foreground: "hsl(0, 0%, 100%)",
         },
         success: {
-          DEFAULT: "hsl(142, 76%, 36%)",
+          DEFAULT: "hsl(142, 70%, 30%)",
           foreground: "hsl(0, 0%, 100%)",
         },
         warning: {
-          DEFAULT: "hsl(32, 94%, 62%)",
+          DEFAULT: "hsl(32, 84%, 36%)",
           foreground: "hsl(0, 0%, 100%)",
         },
         border: "hsl(var(--border))",

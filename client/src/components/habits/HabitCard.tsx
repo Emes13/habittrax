@@ -90,19 +90,19 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
 
   const toneClasses: Record<"success" | "warning" | "destructive", { active: string; inactive: string; icon: string }> = {
     success: {
-      active: "bg-success text-success-foreground shadow-sm",
-      inactive: "border border-success/40 text-success hover:bg-success/10",
-      icon: "text-success",
+      active: "status-button status-button--success",
+      inactive: "status-button status-button--success-muted",
+      icon: "status-icon status-icon--success",
     },
     warning: {
-      active: "bg-warning text-warning-foreground shadow-sm",
-      inactive: "border border-warning/40 text-warning hover:bg-warning/10",
-      icon: "text-warning",
+      active: "status-button status-button--warning",
+      inactive: "status-button status-button--warning-muted",
+      icon: "status-icon status-icon--warning",
     },
     destructive: {
-      active: "bg-destructive text-destructive-foreground shadow-sm",
-      inactive: "border border-destructive/40 text-destructive hover:bg-destructive/10",
-      icon: "text-destructive",
+      active: "status-button status-button--danger",
+      inactive: "status-button status-button--danger-muted",
+      icon: "status-icon status-icon--danger",
     },
   };
   
@@ -212,7 +212,7 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
         title: message.title,
         description: (
           <div className="flex items-start gap-2">
-            <message.Icon className={cn("mt-0.5 h-4 w-4", toneClasses[message.tone].icon)} />
+            <message.Icon className={cn("mt-0.5", toneClasses[message.tone].icon)} />
             <span>{message.description}</span>
           </div>
         ),
@@ -301,7 +301,6 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
                     aria-pressed={isActive}
                     aria-label={`Mark as ${option.label}`}
                     className={cn(
-                      "flex h-8 w-8 items-center justify-center rounded-full text-xs font-medium transition-all duration-200",
                       isActive ? classes.active : classes.inactive,
                       isPending && !isActive && "opacity-60",
                       isPending && "cursor-not-allowed"
