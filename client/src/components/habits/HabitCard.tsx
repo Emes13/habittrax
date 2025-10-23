@@ -1,4 +1,4 @@
-import { Habit, Category, HabitLog } from "@shared/schema";
+import { Habit, Category, HabitLog, HabitStatus } from "@shared/schema";
 import { CheckIcon, FlameIcon, ClockIcon, Trash2Icon, MoreVerticalIcon } from "lucide-react";
 import { useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
@@ -47,20 +47,31 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
     const compareDate = parseLocalDate(date).toISOString().split('T')[0];
     return log.habitId === habit.id && logDate === compareDate;
   });
-  
-  const isCompleted = habitLog?.completed || false;
+
+  const currentStatus: HabitStatus = habitLog?.status ?? "incomplete";
+  const isCompleted = currentStatus === "complete";
+  const isPartial = currentStatus === "partial";
+
+  const statusCycle: HabitStatus[] = ["incomplete", "complete", "partial"];
+  const getNextStatus = (status: HabitStatus) => {
+    const currentIndex = statusCycle.indexOf(status);
+    if (currentIndex === -1) {
+      return "complete";
+    }
+    return statusCycle[(currentIndex + 1) % statusCycle.length];
+  };
   
   // Toggle habit completion mutation
   const { mutate: toggleHabit, isPending } = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest("POST", `/api/habits/${habit.id}/toggle`, { date });
+    mutationFn: async (nextStatus: HabitStatus) => {
+      const response = await apiRequest("POST", `/api/habits/${habit.id}/toggle`, { date, status: nextStatus });
       return response.json();
     },
     // Use optimistic updates for immediate feedback
-    onMutate: async () => {
+    onMutate: async (nextStatus) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['/api/habit-logs', { date }] });
-      
+
       // Get snapshot of the current state
       const previousLogs = queryClient.getQueryData(['/api/habit-logs', { date }]);
       
@@ -76,16 +87,16 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
         // Update existing log
         updatedHabitLogsList[existingLogIndex] = {
           ...updatedHabitLogsList[existingLogIndex],
-          completed: !isCompleted
+          status: nextStatus
         };
       } else {
         // Add new log (optimistically)
         updatedHabitLogsList.push({
           id: Date.now(), // Temporary ID
           habitId: habit.id,
-          userId: 1,
+          userId: habit.userId,
           date: date, // Using string date
-          completed: true
+          status: nextStatus
         });
       }
       
@@ -99,14 +110,31 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
       // Invalidate and refetch to sync with server
       queryClient.invalidateQueries({ queryKey: ['/api/habit-logs'] });
       queryClient.invalidateQueries({ queryKey: ['/api/habit-logs', { date }] });
-      
+
       // Use data returned from the server to determine the toast message
       // The data contains the newly toggled habit log
-      const newCompletionState = data.completed;
-      
+      const newStatus: HabitStatus = data.status;
+
+      const statusMessages: Record<HabitStatus, { title: string; description: string }> = {
+        complete: {
+          title: "Habit completed!",
+          description: "Great job keeping up with your habits!",
+        },
+        partial: {
+          title: "Partial progress logged",
+          description: "Nice work—keep going to finish this habit!",
+        },
+        incomplete: {
+          title: "Habit marked as incomplete",
+          description: "You can still complete it later!",
+        },
+      };
+
+      const message = statusMessages[newStatus];
+
       toast({
-        title: newCompletionState ? "Habit completed!" : "Habit marked as incomplete",
-        description: newCompletionState ? "Great job keeping up with your habits!" : "You can still complete it later!",
+        title: message.title,
+        description: message.description,
         variant: "default", // Only default and destructive are available
       });
     },
@@ -157,7 +185,8 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
 
   const handleToggle = () => {
     if (!isPending) {
-      toggleHabit();
+      const nextStatus = getNextStatus(currentStatus);
+      toggleHabit(nextStatus);
     }
   };
   
@@ -188,10 +217,13 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
               "flex-shrink-0 mt-1 w-6 h-6 rounded-full flex items-center justify-center transition-all duration-200",
               isCompleted
                 ? "border-0 bg-success shadow-sm text-white"
-                : "border-2 border-gray-300 hover:border-primary/50"
+                : isPartial
+                  ? "border-0 bg-primary/20 text-primary shadow-sm"
+                  : "border-2 border-gray-300 hover:border-primary/50"
             )}
           >
             {isCompleted && <CheckIcon className="h-4 w-4 text-white" />}
+            {isPartial && !isCompleted && <ClockIcon className="h-4 w-4" />}
           </button>
           
           <div className="flex-grow">

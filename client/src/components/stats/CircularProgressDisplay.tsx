@@ -78,7 +78,7 @@ export function CircularProgressDisplay({ date = formatDate(new Date()) }: Circu
   const activeHabitIds = activeHabits.map(h => h.id);
   const totalHabits = activeHabits.length;
   const completedHabits = habitLogs.filter(
-    log => log.completed && activeHabitIds.includes(log.habitId)
+    log => log.status === "complete" && activeHabitIds.includes(log.habitId)
   ).length;
   const completionRate = totalHabits > 0 ? (completedHabits / totalHabits) * 100 : 0;
   

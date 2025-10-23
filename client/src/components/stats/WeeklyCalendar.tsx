@@ -61,7 +61,7 @@ export function WeeklyCalendar({ onSelectDate, selectedDate }: WeeklyCalendarPro
     
     if (logsForDay.length === 0) return 0;
     
-    const completedCount = logsForDay.filter(log => log.completed).length;
+    const completedCount = logsForDay.filter(log => log.status === "complete").length;
     return completedCount / logsForDay.length;
   };
   

@@ -1,14 +1,16 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { 
-  insertHabitSchema, 
-  insertCategorySchema, 
-  insertHabitLogSchema 
+import {
+  insertHabitSchema,
+  insertCategorySchema,
+  insertHabitLogSchema,
+  habitStatusEnum,
 } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { setupAuth } from "./auth";
+import { z } from "zod";
 
 // Add validatedBody property to Express Request interface
 declare global {
@@ -47,6 +49,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
   };
+
+  const habitStatusUpdateSchema = z.object({
+    date: z.string(),
+    status: z.enum(habitStatusEnum.enumValues).optional(),
+  });
 
   // Categories routes
   app.get("/api/categories", async (req, res) => {
@@ -227,23 +234,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/habits/:habitId/toggle", isAuthenticated, async (req, res) => {
     try {
       const habitId = parseInt(req.params.habitId);
-      const { date } = req.body;
-      
-      if (!date) {
-        return res.status(400).json({ message: "Date is required" });
-      }
-      
+      const { date, status } = habitStatusUpdateSchema.parse(req.body);
+
       // Ensure it's the user's habit
       const habit = await storage.getHabit(habitId);
       if (!habit || habit.userId !== req.user!.id) {
         return res.status(404).json({ message: "Habit not found" });
       }
-      
+
       const userId = req.user!.id;
-      
-      const updatedLog = await storage.toggleHabitCompletion(habitId, userId, date);
+
+      const updatedLog = await storage.toggleHabitCompletion(habitId, userId, date, status);
       res.json(updatedLog);
     } catch (error) {
+      if (error instanceof ZodError) {
+        const validationError = fromZodError(error);
+        return res.status(400).json({ message: validationError.message });
+      }
       res.status(500).json({ message: "Failed to toggle habit completion" });
     }
   });
@@ -320,7 +327,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 habitId: habit.id,
                 userId: demoUser.id,
                 date: logDate.toISOString().split('T')[0],
-                completed: true
+                status: "complete"
               });
             }
           }

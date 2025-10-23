@@ -29,7 +29,7 @@ export default function Statistics() {
   
   // Calculate overall stats
   const totalHabits = habits?.length || 0;
-  const completedToday = todayLogs?.filter(log => log.completed).length || 0;
+  const completedToday = todayLogs?.filter(log => log.status === "complete").length || 0;
   const completionRate = totalHabits > 0 ? (completedToday / totalHabits) * 100 : 0;
   
   return (
