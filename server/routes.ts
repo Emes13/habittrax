@@ -51,8 +51,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   };
 
   const habitStatusUpdateSchema = z.object({
-    date: z.string(),
     status: z.enum(habitStatusEnum.enumValues).optional(),
+  });
+  const habitStatusQuerySchema = z.object({
+    date: z.string(),
   });
 
   // Categories routes
@@ -234,7 +236,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/habits/:habitId/toggle", isAuthenticated, async (req, res) => {
     try {
       const habitId = parseInt(req.params.habitId);
-      const { date, status } = habitStatusUpdateSchema.parse(req.body);
+      const { date } = habitStatusQuerySchema.parse(req.query);
+      const { status } = habitStatusUpdateSchema.parse(req.body);
 
       // Ensure it's the user's habit
       const habit = await storage.getHabit(habitId);

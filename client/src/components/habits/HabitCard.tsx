@@ -1,4 +1,4 @@
-import { Habit, Category, HabitLog, HabitStatus } from "@shared/schema";
+import { Habit, Category, HabitLog } from "@shared/schema";
 import {
   CheckIcon,
   FlameIcon,
@@ -39,6 +39,8 @@ interface HabitCardProps {
   streak?: number;
 }
 
+type HabitLogStatus = HabitLog["status"];
+
 export function HabitCard({ habit, categories, logs = [], date = formatDate(new Date()), streak = 0 }: HabitCardProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -55,9 +57,9 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
     return log.habitId === habit.id && logDate === compareDate;
   });
 
-  const currentStatus: HabitStatus = habitLog?.status ?? "incomplete";
+  const currentStatus: HabitLogStatus = habitLog?.status ?? "incomplete";
   const statusOptions: Array<{
-    value: HabitStatus;
+    value: HabitLogStatus;
     label: string;
     icon: LucideIcon;
     tone: "success" | "warning" | "destructive";
@@ -105,10 +107,20 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
   };
   
   // Toggle habit completion mutation
-  const { mutate: updateHabitStatus, isPending } = useMutation({
-    mutationFn: async (nextStatus: HabitStatus) => {
-      const response = await apiRequest("POST", `/api/habits/${habit.id}/toggle`, { date, status: nextStatus });
-      return response.json();
+  const { mutate: updateHabitStatus, isPending } = useMutation<
+    HabitLog,
+    Error,
+    HabitLogStatus,
+    { previousLogs?: HabitLog[] }
+  >({
+    mutationFn: async (nextStatus) => {
+      const response = await apiRequest(
+        "POST",
+        `/api/habits/${habit.id}/toggle`,
+        { status: nextStatus },
+        { params: { date } }
+      );
+      return response.json() as Promise<HabitLog>;
     },
     // Use optimistic updates for immediate feedback
     onMutate: async (nextStatus) => {
@@ -116,50 +128,62 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
       await queryClient.cancelQueries({ queryKey: ['/api/habit-logs', { date }] });
 
       // Get snapshot of the current state
-      const previousLogs = queryClient.getQueryData(['/api/habit-logs', { date }]);
-      
+      const previousLogs = queryClient.getQueryData<HabitLog[]>(['/api/habit-logs', { date }]);
+
       // Create optimistic update
-      const updatedHabitLogsList = [...(logs || [])];
-      const existingLogIndex = updatedHabitLogsList.findIndex(log => {
-        const logDate = parseLocalDate(log.date).toISOString().split('T')[0];
-        const compareDate = parseLocalDate(date).toISOString().split('T')[0];
-        return log.habitId === habit.id && logDate === compareDate;
-      });
-      
-      if (existingLogIndex >= 0) {
-        // Update existing log
-        updatedHabitLogsList[existingLogIndex] = {
-          ...updatedHabitLogsList[existingLogIndex],
-          status: nextStatus
-        };
-      } else {
-        // Add new log (optimistically)
-        updatedHabitLogsList.push({
-          id: Date.now(), // Temporary ID
-          habitId: habit.id,
-          userId: habit.userId,
-          date: date, // Using string date
-          status: nextStatus
+      const updatedHabitLogsList = (() => {
+        const normalizedDate = parseLocalDate(date).toISOString().split('T')[0];
+        const existingLogs = previousLogs ? [...previousLogs] : [];
+        const existingLogIndex = existingLogs.findIndex(log => {
+          const logDate = parseLocalDate(log.date).toISOString().split('T')[0];
+          return log.habitId === habit.id && logDate === normalizedDate;
         });
-      }
-      
+
+        if (existingLogIndex >= 0) {
+          existingLogs[existingLogIndex] = {
+            ...existingLogs[existingLogIndex],
+            status: nextStatus,
+          };
+          return existingLogs;
+        }
+
+        return [
+          ...existingLogs,
+          {
+            id: Date.now(),
+            habitId: habit.id,
+            userId: habit.userId,
+            date: normalizedDate,
+            status: nextStatus,
+          },
+        ];
+      })();
+
       // Update the cache with our optimistic update
       queryClient.setQueryData(['/api/habit-logs', { date }], updatedHabitLogsList);
-      
+
       // Return the previous data so we can roll back if needed
       return { previousLogs };
     },
     onSuccess: (data) => {
-      // Invalidate and refetch to sync with server
-      queryClient.invalidateQueries({ queryKey: ['/api/habit-logs'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/habit-logs', { date }] });
+      // Synchronize the cache with the server response
+      queryClient.setQueryData<HabitLog[]>(['/api/habit-logs', { date }], (existingLogs = []) => {
+        const index = existingLogs.findIndex(log => log.id === data.id);
+        if (index >= 0) {
+          const nextLogs = [...existingLogs];
+          nextLogs[index] = data;
+          return nextLogs;
+        }
+        return [...existingLogs, data];
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['/api/habit-logs'], refetchType: 'active' });
 
       // Use data returned from the server to determine the toast message
-      // The data contains the newly toggled habit log
-      const newStatus: HabitStatus = data.status;
+      const newStatus: HabitLogStatus = data.status;
 
       const statusMessages: Record<
-        HabitStatus,
+        HabitLogStatus,
         { title: string; description: string; Icon: LucideIcon; tone: keyof typeof toneClasses }
       > = {
         complete: {
@@ -200,17 +224,13 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
       if (context?.previousLogs) {
         queryClient.setQueryData(['/api/habit-logs', { date }], context.previousLogs);
       }
-      
+
       toast({
         title: "Error",
         description: "Failed to update habit completion status.",
         variant: "destructive",
       });
     },
-    onSettled: () => {
-      // Always refetch after error or success to ensure consistency
-      queryClient.invalidateQueries({ queryKey: ['/api/habit-logs', { date }] });
-    }
   });
 
   // Delete habit mutation
@@ -240,7 +260,7 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
     },
   });
 
-  const handleStatusChange = (status: HabitStatus) => {
+  const handleStatusChange = (status: HabitLogStatus) => {
     if (!isPending && status !== currentStatus) {
       updateHabitStatus(status);
     }

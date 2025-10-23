@@ -7,14 +7,43 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+type ApiRequestOptions = {
+  params?: Record<string, string | number | boolean | null | undefined>;
+  headers?: HeadersInit;
+};
+
+function serializeQuery(params: ApiRequestOptions["params"]): string {
+  if (!params) return "";
+
+  const searchParams = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === null) continue;
+    searchParams.append(key, String(value));
+  }
+
+  return searchParams.toString();
+}
+
 export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
+  options: ApiRequestOptions = {},
 ): Promise<Response> {
-  const res = await fetch(url, {
+  const { params, headers } = options;
+  const queryString = serializeQuery(params);
+  const separator = queryString ? (url.includes("?") ? "&" : "?") : "";
+  const targetUrl = `${url}${separator}${queryString}`;
+
+  const mergedHeaders: HeadersInit = {
+    ...(headers ?? {}),
+    ...(data ? { "Content-Type": "application/json" } : {}),
+  };
+
+  const res = await fetch(targetUrl, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers: mergedHeaders,
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
