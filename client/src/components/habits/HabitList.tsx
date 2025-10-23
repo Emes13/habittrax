@@ -19,13 +19,16 @@ export function HabitList({ selectedCategory, date = formatDate(new Date()) }: H
     queryKey: ['/api/categories'],
   });
   
-  const startDate = new Date();
-  startDate.setDate(startDate.getDate() - 30); // Get logs for last 30 days for streak calculation
-  
+  const selectedDateObj = parseLocalDate(date);
+  const rangeStartDate = new Date(selectedDateObj);
+  rangeStartDate.setDate(rangeStartDate.getDate() - 30); // Get logs for last 30 days for streak calculation
+  const rangeStart = formatDate(rangeStartDate);
+  const rangeEnd = formatDate(selectedDateObj);
+
   const { data: habitLogs, isLoading: isLoadingLogs } = useQuery<HabitLog[]>({
-    queryKey: ['/api/habit-logs', { date }],
-    queryFn: async ({ queryKey }) => {
-      const response = await fetch(`/api/habit-logs?date=${date}`);
+    queryKey: ['/api/habit-logs', { startDate: rangeStart, endDate: rangeEnd }],
+    queryFn: async () => {
+      const response = await fetch(`/api/habit-logs?startDate=${rangeStart}&endDate=${rangeEnd}`);
       if (!response.ok) {
         throw new Error('Failed to fetch habit logs');
       }
@@ -83,10 +86,7 @@ export function HabitList({ selectedCategory, date = formatDate(new Date()) }: H
     ? habits
     : habits.filter(habit => habit.categoryId.toString() === selectedCategory);
 
-
-
-  const dateObj = parseLocalDate(date);
-  const activeHabits = filteredHabits.filter(habit => isHabitActiveOnDate(habit, dateObj));
+  const activeHabits = filteredHabits.filter(habit => isHabitActiveOnDate(habit, selectedDateObj));
 
   // Calculate streaks for each habit
   const calculateHabitStreaks = (habitId: number) => {
@@ -103,7 +103,7 @@ export function HabitList({ selectedCategory, date = formatDate(new Date()) }: H
   const currentDateLogs = habitLogs 
     ? (habitLogs as HabitLog[]).filter((log: HabitLog) => {
         const logDate = parseLocalDate(log.date).toISOString().split('T')[0];
-        const compareDate = parseLocalDate(date).toISOString().split('T')[0];
+        const compareDate = selectedDateObj.toISOString().split('T')[0];
         return logDate === compareDate;
       }) 
     : [];

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Habit, Category, HabitLog, HabitStatus } from "@shared/schema";
+import { Habit, Category, HabitLog } from "@shared/schema";
 import { 
   BarChart, 
   Bar, 
@@ -81,12 +81,6 @@ export function HabitCharts() {
     );
   }
   
-  const statusWeights: Record<HabitStatus, number> = {
-    complete: 1,
-    partial: 0.5,
-    incomplete: 0,
-  };
-
   // Prepare data for category completion chart
   const categoryCompletionData = categories.map(category => {
     const categoryHabits = habits.filter(habit => habit.categoryId === category.id);
@@ -94,14 +88,18 @@ export function HabitCharts() {
 
     const relevantLogs = habitLogs.filter(log => habitIds.includes(log.habitId));
     const totalLogs = relevantLogs.length;
-    const weightedScore = relevantLogs.reduce((sum, log) => sum + statusWeights[log.status], 0);
+    const completeCount = relevantLogs.filter(log => log.status === "complete").length;
+    const partialCount = relevantLogs.filter(log => log.status === "partial").length;
 
-    const completionRate = totalLogs > 0 ? (weightedScore / totalLogs) * 100 : 0;
+    const completionRate = totalLogs > 0 ? (completeCount / totalLogs) * 100 : 0;
 
     return {
       name: category.name,
       rate: Math.round(completionRate),
-      color: category.color
+      color: category.color,
+      complete: completeCount,
+      partial: partialCount,
+      total: totalLogs,
     };
   });
   
@@ -133,15 +131,19 @@ export function HabitCharts() {
       );
     });
 
-    const weightedScore = dayLogs.reduce((sum, log) => sum + statusWeights[log.status], 0);
+    const completeCount = dayLogs.filter(log => log.status === "complete").length;
+    const partialCount = dayLogs.filter(log => log.status === "partial").length;
     const completionRate = activeHabits.length > 0
-      ? (weightedScore / activeHabits.length) * 100
+      ? (completeCount / activeHabits.length) * 100
       : 0;
-    
+
     return {
       date: dateStr,
       name: label,
-      rate: Math.round(completionRate)
+      rate: Math.round(completionRate),
+      complete: completeCount,
+      partial: partialCount,
+      active: activeHabits.length,
     };
   });
   
@@ -168,8 +170,25 @@ export function HabitCharts() {
                 domain={[0, 100]}
                 tickFormatter={(value) => `${value}%`}
               />
-              <Tooltip 
+              <Tooltip
                 formatter={(value) => [`${value}%`, 'Completion Rate']}
+                labelFormatter={(label, payload) => {
+                  if (!payload || payload.length === 0) {
+                    return label;
+                  }
+                  const { complete, partial, total } = payload[0].payload as {
+                    complete?: number;
+                    partial?: number;
+                    total?: number;
+                  };
+                  if (typeof complete === "number" && typeof total === "number") {
+                    const partialText = typeof partial === "number" && partial > 0
+                      ? ` · ${partial} partial`
+                      : "";
+                    return `${label} (${complete}/${total} complete${partialText})`;
+                  }
+                  return label;
+                }}
               />
               <Bar 
                 dataKey="rate" 
@@ -199,8 +218,25 @@ export function HabitCharts() {
                 domain={[0, 100]}
                 tickFormatter={(value) => `${value}%`}
               />
-              <Tooltip 
+              <Tooltip
                 formatter={(value) => [`${value}%`, 'Completion Rate']}
+                labelFormatter={(label, payload) => {
+                  if (!payload || payload.length === 0) {
+                    return label;
+                  }
+                  const { complete, partial, active } = payload[0].payload as {
+                    complete?: number;
+                    partial?: number;
+                    active?: number;
+                  };
+                  if (typeof complete === "number" && typeof active === "number") {
+                    const partialText = typeof partial === "number" && partial > 0
+                      ? ` · ${partial} partial`
+                      : "";
+                    return `${label} (${complete}/${active} complete${partialText})`;
+                  }
+                  return label;
+                }}
               />
               <Line 
                 type="monotone" 

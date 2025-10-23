@@ -1,6 +1,6 @@
 import { CircularProgress } from "@/components/ui/circular-progress";
 import { useQuery } from "@tanstack/react-query";
-import { HabitLog, Habit, HabitStatus } from "@shared/schema";
+import { HabitLog, Habit } from "@shared/schema";
 import { formatDate, parseLocalDate } from "@/lib/dates";
 import { isHabitActiveOnDate } from "@/lib/habitUtils";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -74,12 +74,6 @@ export function CircularProgressDisplay({ date = formatDate(new Date()) }: Circu
     );
   }
   
-  const statusWeights: Record<HabitStatus, number> = {
-    complete: 1,
-    partial: 0.5,
-    incomplete: 0,
-  };
-
   // Calculate completion statistics based on habits active for the selected date
   const dateObj = parseLocalDate(date);
   const activeHabits = habits.filter(habit => isHabitActiveOnDate(habit, dateObj));
@@ -88,8 +82,7 @@ export function CircularProgressDisplay({ date = formatDate(new Date()) }: Circu
   const dailyLogs = habitLogs.filter(log => activeHabitIds.includes(log.habitId));
   const completedHabits = dailyLogs.filter((log) => log.status === "complete").length;
   const partialHabits = dailyLogs.filter((log) => log.status === "partial").length;
-  const weightedScore = dailyLogs.reduce((sum, log) => sum + statusWeights[log.status], 0);
-  const completionRate = totalHabits > 0 ? (weightedScore / totalHabits) * 100 : 0;
+  const completionRate = totalHabits > 0 ? (completedHabits / totalHabits) * 100 : 0;
   
   return (
     <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
