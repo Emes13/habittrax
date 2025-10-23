@@ -46,7 +46,7 @@ const ReminderChecker = ({ habits }: Props) => {
         const doneToday = habitLogs?.some(
           (log) =>
             log.habitId === habit.id &&
-            log.completed &&
+            log.status === "complete" &&
             log.date.startsWith(todayIso)
         );
 

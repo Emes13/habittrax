@@ -87,7 +87,7 @@ export function HabitCharts() {
     const habitIds = categoryHabits.map(habit => habit.id);
     
     const totalLogs = habitLogs.filter(log => habitIds.includes(log.habitId)).length;
-    const completedLogs = habitLogs.filter(log => habitIds.includes(log.habitId) && log.completed).length;
+    const completedLogs = habitLogs.filter(log => habitIds.includes(log.habitId) && log.status === "complete").length;
     
     const completionRate = totalLogs > 0 ? (completedLogs / totalLogs) * 100 : 0;
     
@@ -126,7 +126,7 @@ export function HabitCharts() {
       );
     });
 
-    const completedLogs = dayLogs.filter(log => log.completed).length;
+    const completedLogs = dayLogs.filter(log => log.status === "complete").length;
 
     const completionRate = activeHabits.length > 0
       ? (completedLogs / activeHabits.length) * 100

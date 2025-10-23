@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, date } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, date, pgEnum } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -52,19 +52,27 @@ export const insertHabitSchema = createInsertSchema(habits).pick({
 });
 
 // Habit logs (tracking completions)
+export const habitStatusEnum = pgEnum("habit_status", [
+  "incomplete",
+  "partial",
+  "complete",
+]);
+
 export const habitLogs = pgTable("habit_logs", {
   id: serial("id").primaryKey(),
   habitId: integer("habit_id").notNull(),
   userId: integer("user_id").notNull(),
   date: date("date").notNull(),
-  completed: boolean("completed").notNull().default(false),
+  status: habitStatusEnum("status").notNull().default("incomplete"),
 });
 
 export const insertHabitLogSchema = createInsertSchema(habitLogs).pick({
   habitId: true,
   userId: true,
   date: true,
-  completed: true,
+  status: true,
+}).extend({
+  status: z.enum(habitStatusEnum.enumValues).optional(),
 });
 
 // Types
@@ -79,6 +87,7 @@ export type InsertHabit = z.infer<typeof insertHabitSchema>;
 
 export type HabitLog = typeof habitLogs.$inferSelect;
 export type InsertHabitLog = z.infer<typeof insertHabitLogSchema>;
+export type HabitStatus = typeof habitStatusEnum.enumValues[number];
 
 // Extended schemas with validations for frontend
 export const habitValidationSchema = insertHabitSchema.extend({

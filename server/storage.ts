@@ -1,8 +1,9 @@
-import { 
-  users, User, InsertUser, 
+import {
+  users, User, InsertUser,
   categories, Category, InsertCategory,
   habits, Habit, InsertHabit,
-  habitLogs, HabitLog, InsertHabitLog
+  habitLogs, HabitLog, InsertHabitLog,
+  HabitStatus,
 } from "@shared/schema";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { eq, and, between, desc } from "drizzle-orm";
@@ -38,7 +39,12 @@ export interface IStorage {
   getHabitLog(habitId: number, date: string): Promise<HabitLog | undefined>;
   createHabitLog(log: InsertHabitLog): Promise<HabitLog>;
   updateHabitLog(id: number, log: Partial<InsertHabitLog>): Promise<HabitLog | undefined>;
-  toggleHabitCompletion(habitId: number, userId: number, date: string): Promise<HabitLog>;
+  toggleHabitCompletion(
+    habitId: number,
+    userId: number,
+    date: string,
+    status?: HabitStatus
+  ): Promise<HabitLog>;
   
   // Session
   sessionStore: session.Store;
@@ -235,10 +241,10 @@ export class MemStorage implements IStorage {
 
   async createHabitLog(insertLog: InsertHabitLog): Promise<HabitLog> {
     const id = this.habitLogsCurrentId++;
-    const log: HabitLog = { 
-      ...insertLog, 
+    const log: HabitLog = {
+      ...insertLog,
       id,
-      completed: insertLog.completed !== undefined ? insertLog.completed : false
+      status: insertLog.status ?? "incomplete"
     };
     this.habitLogs.set(id, log);
     return log;
@@ -257,28 +263,35 @@ export class MemStorage implements IStorage {
     return updatedLog;
   }
 
-  async toggleHabitCompletion(habitId: number, userId: number, date: string): Promise<HabitLog> {
+  async toggleHabitCompletion(
+    habitId: number,
+    userId: number,
+    date: string,
+    status?: HabitStatus
+  ): Promise<HabitLog> {
     // Check if log exists for this habit and date
     const existingLog = await this.getHabitLog(habitId, date);
-    
+
     if (existingLog) {
-      // Toggle completion status
-      const updated = await this.updateHabitLog(existingLog.id, { 
-        completed: !existingLog.completed 
+      const nextStatus = status ?? (existingLog.status === "complete" ? "incomplete" : "complete");
+
+      const updated = await this.updateHabitLog(existingLog.id, {
+        status: nextStatus
       });
-      
+
       if (!updated) {
         throw new Error("Failed to update habit log");
       }
-      
+
       return updated;
     } else {
-      // Create new log with completed status
+      const resolvedStatus = status ?? "complete";
+
       return await this.createHabitLog({
         habitId,
         userId,
         date: date, // Use the string directly for date since the schema expects a string
-        completed: true
+        status: resolvedStatus
       });
     }
   }
@@ -479,9 +492,10 @@ export class DatabaseStorage implements IStorage {
     // Ensure the date is normalized
     const normalizedLog = {
       ...log,
-      date: new Date(log.date).toISOString().split('T')[0]
+      date: new Date(log.date).toISOString().split('T')[0],
+      status: log.status ?? "incomplete"
     };
-    
+
     const results = await this.db.insert(habitLogs).values(normalizedLog).returning();
     return results[0];
   }
@@ -501,30 +515,37 @@ export class DatabaseStorage implements IStorage {
     return results[0];
   }
 
-  async toggleHabitCompletion(habitId: number, userId: number, date: string): Promise<HabitLog> {
+  async toggleHabitCompletion(
+    habitId: number,
+    userId: number,
+    date: string,
+    status?: HabitStatus
+  ): Promise<HabitLog> {
     const normalizedDate = new Date(date).toISOString().split('T')[0]; // Format as YYYY-MM-DD
-    
+
     // Check if log exists for this habit and date
     const existingLog = await this.getHabitLog(habitId, normalizedDate);
-    
+
     if (existingLog) {
-      // Toggle completion status
-      const updated = await this.updateHabitLog(existingLog.id, { 
-        completed: !existingLog.completed 
+      const nextStatus = status ?? (existingLog.status === "complete" ? "incomplete" : "complete");
+
+      const updated = await this.updateHabitLog(existingLog.id, {
+        status: nextStatus
       });
-      
+
       if (!updated) {
         throw new Error("Failed to update habit log");
       }
-      
+
       return updated;
     } else {
-      // Create new log with completed status
+      const resolvedStatus = status ?? "complete";
+
       return await this.createHabitLog({
         habitId,
         userId,
         date: normalizedDate,
-        completed: true
+        status: resolvedStatus
       });
     }
   }

@@ -86,7 +86,7 @@ export function HabitList({ selectedCategory, date = formatDate(new Date()) }: H
     if (!habitLogs) return 0;
     
     const completedDates = (habitLogs as HabitLog[])
-      .filter((log: HabitLog) => log.habitId === habitId && log.completed)
+      .filter((log: HabitLog) => log.habitId === habitId && log.status === "complete")
       .map((log: HabitLog) => parseLocalDate(log.date));
     
     return getStreakCount(completedDates);
