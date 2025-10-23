@@ -1,6 +1,6 @@
 import { CircularProgress } from "@/components/ui/circular-progress";
 import { useQuery } from "@tanstack/react-query";
-import { HabitLog, Habit } from "@shared/schema";
+import { HabitLog, Habit, HabitStatus } from "@shared/schema";
 import { formatDate, parseLocalDate } from "@/lib/dates";
 import { isHabitActiveOnDate } from "@/lib/habitUtils";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -34,8 +34,9 @@ export function CircularProgressDisplay({ date = formatDate(new Date()) }: Circu
       <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
         <div className="flex items-center justify-between mb-2">
           <div>
-            <h4 className="text-sm text-gray-600">Completed</h4>
-            <Skeleton className="h-8 w-16 mt-1" />
+            <h4 className="text-sm text-gray-600">Progress</h4>
+            <Skeleton className="h-8 w-20 mt-1" />
+            <Skeleton className="h-4 w-24 mt-2" />
           </div>
           <Skeleton className="w-32 h-32 rounded-full" />
         </div>
@@ -43,17 +44,18 @@ export function CircularProgressDisplay({ date = formatDate(new Date()) }: Circu
       </div>
     );
   }
-  
+
   if (!habits || !habitLogs) {
     return (
       <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
         <div className="flex items-center justify-between mb-2">
           <div>
-            <h4 className="text-sm text-gray-600">Completed</h4>
-            <p className="text-2xl font-bold">0/0</p>
+            <h4 className="text-sm text-gray-600">Progress</h4>
+            <p className="text-2xl font-bold">0%</p>
+            <p className="text-xs text-gray-500">0 complete · 0 partial</p>
           </div>
           <div className="w-32 h-32">
-            <CircularProgress 
+            <CircularProgress
               value={0}
               size={128}
               thickness={10}
@@ -72,25 +74,33 @@ export function CircularProgressDisplay({ date = formatDate(new Date()) }: Circu
     );
   }
   
+  const statusWeights: Record<HabitStatus, number> = {
+    complete: 1,
+    partial: 0.5,
+    incomplete: 0,
+  };
+
   // Calculate completion statistics based on habits active for the selected date
   const dateObj = parseLocalDate(date);
   const activeHabits = habits.filter(habit => isHabitActiveOnDate(habit, dateObj));
   const activeHabitIds = activeHabits.map(h => h.id);
   const totalHabits = activeHabits.length;
-  const completedHabits = habitLogs.filter(
-    log => log.status === "complete" && activeHabitIds.includes(log.habitId)
-  ).length;
-  const completionRate = totalHabits > 0 ? (completedHabits / totalHabits) * 100 : 0;
+  const dailyLogs = habitLogs.filter(log => activeHabitIds.includes(log.habitId));
+  const completedHabits = dailyLogs.filter((log) => log.status === "complete").length;
+  const partialHabits = dailyLogs.filter((log) => log.status === "partial").length;
+  const weightedScore = dailyLogs.reduce((sum, log) => sum + statusWeights[log.status], 0);
+  const completionRate = totalHabits > 0 ? (weightedScore / totalHabits) * 100 : 0;
   
   return (
     <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
       <div className="flex items-center justify-between mb-2">
         <div>
-          <h4 className="text-sm text-gray-600">Completed</h4>
-          <p className="text-2xl font-bold">{completedHabits}/{totalHabits}</p>
+          <h4 className="text-sm text-gray-600">Progress</h4>
+          <p className="text-2xl font-bold">{Math.round(completionRate)}%</p>
+          <p className="text-xs text-gray-500">{completedHabits} complete · {partialHabits} partial</p>
         </div>
         <div className="w-32 h-32">
-          <CircularProgress 
+          <CircularProgress
             value={completionRate}
             size={128}
             thickness={10}

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Habit, Category, HabitLog } from "@shared/schema";
+import { Habit, Category, HabitLog, HabitStatus } from "@shared/schema";
 import { 
   BarChart, 
   Bar, 
@@ -81,16 +81,23 @@ export function HabitCharts() {
     );
   }
   
+  const statusWeights: Record<HabitStatus, number> = {
+    complete: 1,
+    partial: 0.5,
+    incomplete: 0,
+  };
+
   // Prepare data for category completion chart
   const categoryCompletionData = categories.map(category => {
     const categoryHabits = habits.filter(habit => habit.categoryId === category.id);
     const habitIds = categoryHabits.map(habit => habit.id);
-    
-    const totalLogs = habitLogs.filter(log => habitIds.includes(log.habitId)).length;
-    const completedLogs = habitLogs.filter(log => habitIds.includes(log.habitId) && log.status === "complete").length;
-    
-    const completionRate = totalLogs > 0 ? (completedLogs / totalLogs) * 100 : 0;
-    
+
+    const relevantLogs = habitLogs.filter(log => habitIds.includes(log.habitId));
+    const totalLogs = relevantLogs.length;
+    const weightedScore = relevantLogs.reduce((sum, log) => sum + statusWeights[log.status], 0);
+
+    const completionRate = totalLogs > 0 ? (weightedScore / totalLogs) * 100 : 0;
+
     return {
       name: category.name,
       rate: Math.round(completionRate),
@@ -126,10 +133,9 @@ export function HabitCharts() {
       );
     });
 
-    const completedLogs = dayLogs.filter(log => log.status === "complete").length;
-
+    const weightedScore = dayLogs.reduce((sum, log) => sum + statusWeights[log.status], 0);
     const completionRate = activeHabits.length > 0
-      ? (completedLogs / activeHabits.length) * 100
+      ? (weightedScore / activeHabits.length) * 100
       : 0;
     
     return {

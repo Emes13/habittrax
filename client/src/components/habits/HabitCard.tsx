@@ -1,8 +1,16 @@
 import { Habit, Category, HabitLog, HabitStatus } from "@shared/schema";
-import { CheckIcon, FlameIcon, ClockIcon, Trash2Icon, MoreVerticalIcon } from "lucide-react";
+import {
+  CheckIcon,
+  FlameIcon,
+  ClockIcon,
+  Trash2Icon,
+  MoreVerticalIcon,
+  XIcon,
+  LucideIcon,
+} from "lucide-react";
 import { useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
-import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,7 +28,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { formatDate, parseLocalDate } from "@/lib/dates";
-import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -49,20 +56,56 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
   });
 
   const currentStatus: HabitStatus = habitLog?.status ?? "incomplete";
-  const isCompleted = currentStatus === "complete";
-  const isPartial = currentStatus === "partial";
+  const statusOptions: Array<{
+    value: HabitStatus;
+    label: string;
+    icon: LucideIcon;
+    tone: "success" | "warning" | "destructive";
+    helper: string;
+  }> = [
+    {
+      value: "complete",
+      label: "Complete",
+      icon: CheckIcon,
+      tone: "success",
+      helper: "Great job!",
+    },
+    {
+      value: "partial",
+      label: "Partial",
+      icon: ClockIcon,
+      tone: "warning",
+      helper: "Progress made",
+    },
+    {
+      value: "incomplete",
+      label: "Incomplete",
+      icon: XIcon,
+      tone: "destructive",
+      helper: "Not yet started",
+    },
+  ];
 
-  const statusCycle: HabitStatus[] = ["incomplete", "complete", "partial"];
-  const getNextStatus = (status: HabitStatus) => {
-    const currentIndex = statusCycle.indexOf(status);
-    if (currentIndex === -1) {
-      return "complete";
-    }
-    return statusCycle[(currentIndex + 1) % statusCycle.length];
+  const toneClasses: Record<"success" | "warning" | "destructive", { active: string; inactive: string; icon: string }> = {
+    success: {
+      active: "bg-success text-success-foreground shadow-sm",
+      inactive: "border border-success/40 text-success hover:bg-success/10",
+      icon: "text-success",
+    },
+    warning: {
+      active: "bg-warning text-warning-foreground shadow-sm",
+      inactive: "border border-warning/40 text-warning hover:bg-warning/10",
+      icon: "text-warning",
+    },
+    destructive: {
+      active: "bg-destructive text-destructive-foreground shadow-sm",
+      inactive: "border border-destructive/40 text-destructive hover:bg-destructive/10",
+      icon: "text-destructive",
+    },
   };
   
   // Toggle habit completion mutation
-  const { mutate: toggleHabit, isPending } = useMutation({
+  const { mutate: updateHabitStatus, isPending } = useMutation({
     mutationFn: async (nextStatus: HabitStatus) => {
       const response = await apiRequest("POST", `/api/habits/${habit.id}/toggle`, { date, status: nextStatus });
       return response.json();
@@ -115,18 +158,27 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
       // The data contains the newly toggled habit log
       const newStatus: HabitStatus = data.status;
 
-      const statusMessages: Record<HabitStatus, { title: string; description: string }> = {
+      const statusMessages: Record<
+        HabitStatus,
+        { title: string; description: string; Icon: LucideIcon; tone: keyof typeof toneClasses }
+      > = {
         complete: {
           title: "Habit completed!",
           description: "Great job keeping up with your habits!",
+          Icon: CheckIcon,
+          tone: "success",
         },
         partial: {
           title: "Partial progress logged",
           description: "Nice work—keep going to finish this habit!",
+          Icon: ClockIcon,
+          tone: "warning",
         },
         incomplete: {
           title: "Habit marked as incomplete",
           description: "You can still complete it later!",
+          Icon: XIcon,
+          tone: "destructive",
         },
       };
 
@@ -134,8 +186,13 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
 
       toast({
         title: message.title,
-        description: message.description,
-        variant: "default", // Only default and destructive are available
+        description: (
+          <div className="flex items-start gap-2">
+            <message.Icon className={cn("mt-0.5 h-4 w-4", toneClasses[message.tone].icon)} />
+            <span>{message.description}</span>
+          </div>
+        ),
+        variant: message.tone === "destructive" ? "destructive" : "default", // Only default and destructive are available
       });
     },
     onError: (error, variables, context) => {
@@ -183,10 +240,9 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
     },
   });
 
-  const handleToggle = () => {
-    if (!isPending) {
-      const nextStatus = getNextStatus(currentStatus);
-      toggleHabit(nextStatus);
+  const handleStatusChange = (status: HabitStatus) => {
+    if (!isPending && status !== currentStatus) {
+      updateHabitStatus(status);
     }
   };
   
@@ -210,21 +266,37 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
     <>
       <div className="bg-white rounded-xl shadow-sm p-4 hover:shadow-md transition-shadow">
         <div className="flex items-start gap-3">
-          <button
-            onClick={handleToggle}
-            disabled={isPending}
-            className={cn(
-              "flex-shrink-0 mt-1 w-6 h-6 rounded-full flex items-center justify-center transition-all duration-200",
-              isCompleted
-                ? "border-0 bg-success shadow-sm text-white"
-                : isPartial
-                  ? "border-0 bg-primary/20 text-primary shadow-sm"
-                  : "border-2 border-gray-300 hover:border-primary/50"
-            )}
-          >
-            {isCompleted && <CheckIcon className="h-4 w-4 text-white" />}
-            {isPartial && !isCompleted && <ClockIcon className="h-4 w-4" />}
-          </button>
+          <div className="flex flex-col items-center gap-1">
+            <div className="flex items-center gap-1">
+              {statusOptions.map((option) => {
+                const isActive = currentStatus === option.value;
+                const classes = toneClasses[option.tone];
+                const Icon = option.icon;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => handleStatusChange(option.value)}
+                    disabled={isPending}
+                    aria-pressed={isActive}
+                    aria-label={`Mark as ${option.label}`}
+                    className={cn(
+                      "flex h-8 w-8 items-center justify-center rounded-full text-xs font-medium transition-all duration-200",
+                      isActive ? classes.active : classes.inactive,
+                      isPending && !isActive && "opacity-60",
+                      isPending && "cursor-not-allowed"
+                    )}
+                    title={option.label}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                  </button>
+                );
+              })}
+            </div>
+            <span className="text-[10px] font-medium text-gray-500">
+              {statusOptions.find((option) => option.value === currentStatus)?.helper}
+            </span>
+          </div>
           
           <div className="flex-grow">
             <div className="flex items-center justify-between">

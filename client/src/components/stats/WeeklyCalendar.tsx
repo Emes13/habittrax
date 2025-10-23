@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { HabitLog } from "@shared/schema";
+import { HabitLog, HabitStatus } from "@shared/schema";
 import { 
   getCurrentWeekDates, 
   getPreviousWeekDates, 
@@ -15,6 +15,7 @@ import {
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 interface WeeklyCalendarProps {
   onSelectDate: (date: string) => void;
@@ -52,17 +53,48 @@ export function WeeklyCalendar({ onSelectDate, selectedDate }: WeeklyCalendarPro
     setWeekDates(getNextWeekDates(weekDates.start));
   };
   
-  // Calculate completion rate for each day
-  const getCompletionRate = (date: Date) => {
-    if (!habitLogs) return 0;
-    
+  type DayStatus = HabitStatus | "none";
+
+  const getDayStatus = (date: Date): DayStatus => {
+    if (!habitLogs) return "none";
+
     const formattedDate = formatDate(date);
     const logsForDay = habitLogs.filter(log => formatDate(parseLocalDate(log.date)) === formattedDate);
-    
-    if (logsForDay.length === 0) return 0;
-    
-    const completedCount = logsForDay.filter(log => log.status === "complete").length;
-    return completedCount / logsForDay.length;
+
+    if (logsForDay.length === 0) {
+      return "none";
+    }
+
+    const allComplete = logsForDay.every((log) => log.status === "complete");
+    if (allComplete) {
+      return "complete";
+    }
+
+    const allIncomplete = logsForDay.every((log) => log.status === "incomplete");
+    if (allIncomplete) {
+      return "incomplete";
+    }
+
+    return "partial";
+  };
+
+  const dayToneClasses: Record<DayStatus, { button: string; bar: string }> = {
+    complete: {
+      button: "bg-success text-success-foreground hover:bg-success/90",
+      bar: "bg-success",
+    },
+    partial: {
+      button: "bg-warning text-warning-foreground hover:bg-warning/90",
+      bar: "bg-warning",
+    },
+    incomplete: {
+      button: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+      bar: "bg-destructive",
+    },
+    none: {
+      button: "bg-gray-100 text-gray-700 hover:bg-gray-200",
+      bar: "bg-gray-300",
+    },
   };
   
   if (isLoading) {
@@ -113,11 +145,11 @@ export function WeeklyCalendar({ onSelectDate, selectedDate }: WeeklyCalendarPro
       <div className="grid grid-cols-7 gap-2">
         {weekDates.days.map((day) => {
           const dateStr = formatDate(day);
-          const completionRate = getCompletionRate(day);
-          const opacity = Math.max(0.3, completionRate);
+          const dayStatus = getDayStatus(day);
+          const tone = dayToneClasses[dayStatus];
           const isSelected = selectedDate === dateStr;
           const dayIsToday = isToday(day);
-          
+
           return (
             <div key={dateStr} className="flex flex-col items-center">
               <span className="text-xs text-gray-500 mb-2">
@@ -125,24 +157,21 @@ export function WeeklyCalendar({ onSelectDate, selectedDate }: WeeklyCalendarPro
               </span>
               <button
                 onClick={() => onSelectDate(dateStr)}
-                className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                  isSelected 
-                    ? 'bg-primary text-white' 
-                    : dayIsToday
-                      ? 'bg-primary/20 text-primary'
-                      : 'bg-primary/10 text-gray-700'
-                }`}
-                style={{ opacity: isSelected ? 1 : opacity }}
+                className={cn(
+                  "w-10 h-10 rounded-lg flex items-center justify-center text-sm font-medium transition-colors",
+                  dayIsToday && dayStatus === "none" ? "bg-primary/10 text-primary" : tone.button,
+                  isSelected && "ring-2 ring-offset-2 ring-primary"
+                )}
               >
                 <span className="text-sm font-medium">
                   {formatDayNumber(day)}
                 </span>
               </button>
               <div
-                className={`mt-2 w-8 h-1.5 rounded-full ${
-                  isSelected ? 'bg-primary' : 'bg-primary/50'
-                }`}
-                style={{ opacity }}
+                className={cn(
+                  "mt-2 w-8 h-1.5 rounded-full",
+                  isSelected ? "bg-primary" : tone.bar
+                )}
               ></div>
               <span className="text-[10px] text-gray-500 mt-1">
                 {formatHebrewDate(day)}
