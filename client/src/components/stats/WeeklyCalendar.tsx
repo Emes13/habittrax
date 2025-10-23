@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { HabitLog, HabitStatus } from "@shared/schema";
+import { HabitLog } from "@shared/schema";
 import { 
   getCurrentWeekDates, 
   getPreviousWeekDates, 
@@ -53,7 +53,7 @@ export function WeeklyCalendar({ onSelectDate, selectedDate }: WeeklyCalendarPro
     setWeekDates(getNextWeekDates(weekDates.start));
   };
   
-  type DayStatus = HabitStatus | "none";
+  type DayStatus = HabitLog["status"] | "none";
 
   const getDayStatus = (date: Date): DayStatus => {
     if (!habitLogs) return "none";
