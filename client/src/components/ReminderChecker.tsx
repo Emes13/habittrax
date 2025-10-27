@@ -51,8 +51,9 @@ const ReminderChecker = ({ habits }: Props) => {
 
         const isComplete = todayLog?.status === "complete";
         const isPartial = todayLog?.status === "partial";
+        const isNotApplicable = todayLog?.status === "not_applicable";
 
-        if (!isComplete && currentHour >= reminderHour) {
+        if (!isComplete && !isNotApplicable && currentHour >= reminderHour) {
           const message = isPartial
             ? `Keep going: ${habit.name} is partially complete`
             : `Reminder: ${habit.name}`;

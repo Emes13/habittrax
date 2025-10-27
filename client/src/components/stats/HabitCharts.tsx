@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Habit, Category, HabitLog } from "@shared/schema";
 import { 
@@ -87,9 +86,11 @@ export function HabitCharts() {
     const habitIds = categoryHabits.map(habit => habit.id);
 
     const relevantLogs = habitLogs.filter(log => habitIds.includes(log.habitId));
-    const totalLogs = relevantLogs.length;
-    const completeCount = relevantLogs.filter(log => log.status === "complete").length;
-    const partialCount = relevantLogs.filter(log => log.status === "partial").length;
+    const actionableLogs = relevantLogs.filter(log => log.status !== "not_applicable");
+    const notApplicableCount = relevantLogs.length - actionableLogs.length;
+    const totalLogs = actionableLogs.length;
+    const completeCount = actionableLogs.filter(log => log.status === "complete").length;
+    const partialCount = actionableLogs.filter(log => log.status === "partial").length;
 
     const completionRate = totalLogs > 0 ? (completeCount / totalLogs) * 100 : 0;
 
@@ -99,6 +100,7 @@ export function HabitCharts() {
       color: category.color,
       complete: completeCount,
       partial: partialCount,
+      notApplicable: notApplicableCount,
       total: totalLogs,
     };
   });
@@ -131,10 +133,13 @@ export function HabitCharts() {
       );
     });
 
-    const completeCount = dayLogs.filter(log => log.status === "complete").length;
-    const partialCount = dayLogs.filter(log => log.status === "partial").length;
-    const completionRate = activeHabits.length > 0
-      ? (completeCount / activeHabits.length) * 100
+    const actionableLogs = dayLogs.filter(log => log.status !== "not_applicable");
+    const notApplicableCount = dayLogs.length - actionableLogs.length;
+    const completeCount = actionableLogs.filter(log => log.status === "complete").length;
+    const partialCount = actionableLogs.filter(log => log.status === "partial").length;
+    const effectiveActive = Math.max(activeHabits.length - notApplicableCount, 0);
+    const completionRate = effectiveActive > 0
+      ? (completeCount / effectiveActive) * 100
       : 0;
 
     return {
@@ -143,7 +148,8 @@ export function HabitCharts() {
       rate: Math.round(completionRate),
       complete: completeCount,
       partial: partialCount,
-      active: activeHabits.length,
+      notApplicable: notApplicableCount,
+      active: effectiveActive,
     };
   });
   
@@ -176,16 +182,20 @@ export function HabitCharts() {
                   if (!payload || payload.length === 0) {
                     return label;
                   }
-                  const { complete, partial, total } = payload[0].payload as {
+                  const { complete, partial, total, notApplicable } = payload[0].payload as {
                     complete?: number;
                     partial?: number;
                     total?: number;
+                    notApplicable?: number;
                   };
                   if (typeof complete === "number" && typeof total === "number") {
                     const partialText = typeof partial === "number" && partial > 0
                       ? ` · ${partial} partial`
                       : "";
-                    return `${label} (${complete}/${total} complete${partialText})`;
+                    const notApplicableText = typeof notApplicable === "number" && notApplicable > 0
+                      ? ` · ${notApplicable} not applicable`
+                      : "";
+                    return `${label} (${complete}/${total} complete${partialText}${notApplicableText})`;
                   }
                   return label;
                 }}
@@ -224,16 +234,20 @@ export function HabitCharts() {
                   if (!payload || payload.length === 0) {
                     return label;
                   }
-                  const { complete, partial, active } = payload[0].payload as {
+                  const { complete, partial, active, notApplicable } = payload[0].payload as {
                     complete?: number;
                     partial?: number;
                     active?: number;
+                    notApplicable?: number;
                   };
                   if (typeof complete === "number" && typeof active === "number") {
                     const partialText = typeof partial === "number" && partial > 0
                       ? ` · ${partial} partial`
                       : "";
-                    return `${label} (${complete}/${active} complete${partialText})`;
+                    const notApplicableText = typeof notApplicable === "number" && notApplicable > 0
+                      ? ` · ${notApplicable} not applicable`
+                      : "";
+                    return `${label} (${complete}/${active} complete${partialText}${notApplicableText})`;
                   }
                   return label;
                 }}
