@@ -56,6 +56,7 @@ export const habitStatusEnum = pgEnum("habit_status", [
   "incomplete",
   "partial",
   "complete",
+  "not_applicable",
 ]);
 
 export const habitLogs = pgTable("habit_logs", {

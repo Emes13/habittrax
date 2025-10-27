@@ -52,7 +52,7 @@ export function CircularProgressDisplay({ date = formatDate(new Date()) }: Circu
           <div>
             <h4 className="text-sm text-gray-600">Progress</h4>
             <p className="text-2xl font-bold">0%</p>
-            <p className="text-xs text-gray-500">0 complete · 0 partial</p>
+            <p className="text-xs text-gray-500">0 complete · 0 partial · 0 N/A</p>
           </div>
           <div className="w-32 h-32">
             <CircularProgress
@@ -82,7 +82,9 @@ export function CircularProgressDisplay({ date = formatDate(new Date()) }: Circu
   const dailyLogs = habitLogs.filter(log => activeHabitIds.includes(log.habitId));
   const completedHabits = dailyLogs.filter((log) => log.status === "complete").length;
   const partialHabits = dailyLogs.filter((log) => log.status === "partial").length;
-  const completionRate = totalHabits > 0 ? (completedHabits / totalHabits) * 100 : 0;
+  const notApplicableHabits = dailyLogs.filter((log) => log.status === "not_applicable").length;
+  const evaluableHabits = Math.max(totalHabits - notApplicableHabits, 0);
+  const completionRate = evaluableHabits > 0 ? (completedHabits / evaluableHabits) * 100 : 0;
   
   return (
     <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
@@ -90,7 +92,9 @@ export function CircularProgressDisplay({ date = formatDate(new Date()) }: Circu
         <div>
           <h4 className="text-sm text-gray-600">Progress</h4>
           <p className="text-2xl font-bold">{Math.round(completionRate)}%</p>
-          <p className="text-xs text-gray-500">{completedHabits} complete · {partialHabits} partial</p>
+          <p className="text-xs text-gray-500">
+            {completedHabits} complete · {partialHabits} partial · {notApplicableHabits} N/A
+          </p>
         </div>
         <div className="w-32 h-32">
           <CircularProgress

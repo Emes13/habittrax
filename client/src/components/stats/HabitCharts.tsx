@@ -87,11 +87,13 @@ export function HabitCharts() {
     const habitIds = categoryHabits.map(habit => habit.id);
 
     const relevantLogs = habitLogs.filter(log => habitIds.includes(log.habitId));
-    const totalLogs = relevantLogs.length;
-    const completeCount = relevantLogs.filter(log => log.status === "complete").length;
-    const partialCount = relevantLogs.filter(log => log.status === "partial").length;
+    const notApplicableCount = relevantLogs.filter(log => log.status === "not_applicable").length;
+    const evaluableLogs = relevantLogs.filter(log => log.status !== "not_applicable");
+    const totalEvaluableLogs = evaluableLogs.length;
+    const completeCount = evaluableLogs.filter(log => log.status === "complete").length;
+    const partialCount = evaluableLogs.filter(log => log.status === "partial").length;
 
-    const completionRate = totalLogs > 0 ? (completeCount / totalLogs) * 100 : 0;
+    const completionRate = totalEvaluableLogs > 0 ? (completeCount / totalEvaluableLogs) * 100 : 0;
 
     return {
       name: category.name,
@@ -99,7 +101,8 @@ export function HabitCharts() {
       color: category.color,
       complete: completeCount,
       partial: partialCount,
-      total: totalLogs,
+      notApplicable: notApplicableCount,
+      total: totalEvaluableLogs,
     };
   });
   
@@ -131,10 +134,13 @@ export function HabitCharts() {
       );
     });
 
-    const completeCount = dayLogs.filter(log => log.status === "complete").length;
-    const partialCount = dayLogs.filter(log => log.status === "partial").length;
-    const completionRate = activeHabits.length > 0
-      ? (completeCount / activeHabits.length) * 100
+    const notApplicableCount = dayLogs.filter(log => log.status === "not_applicable").length;
+    const evaluableHabits = Math.max(activeHabits.length - notApplicableCount, 0);
+    const evaluableLogs = dayLogs.filter(log => log.status !== "not_applicable");
+    const completeCount = evaluableLogs.filter(log => log.status === "complete").length;
+    const partialCount = evaluableLogs.filter(log => log.status === "partial").length;
+    const completionRate = evaluableHabits > 0
+      ? (completeCount / evaluableHabits) * 100
       : 0;
 
     return {
@@ -143,7 +149,8 @@ export function HabitCharts() {
       rate: Math.round(completionRate),
       complete: completeCount,
       partial: partialCount,
-      active: activeHabits.length,
+      notApplicable: notApplicableCount,
+      active: evaluableHabits,
     };
   });
   
@@ -176,16 +183,20 @@ export function HabitCharts() {
                   if (!payload || payload.length === 0) {
                     return label;
                   }
-                  const { complete, partial, total } = payload[0].payload as {
+                  const { complete, partial, total, notApplicable } = payload[0].payload as {
                     complete?: number;
                     partial?: number;
                     total?: number;
+                    notApplicable?: number;
                   };
                   if (typeof complete === "number" && typeof total === "number") {
                     const partialText = typeof partial === "number" && partial > 0
                       ? ` · ${partial} partial`
                       : "";
-                    return `${label} (${complete}/${total} complete${partialText})`;
+                    const notApplicableText = typeof notApplicable === "number" && notApplicable > 0
+                      ? ` · ${notApplicable} N/A`
+                      : "";
+                    return `${label} (${complete}/${total} complete${partialText}${notApplicableText})`;
                   }
                   return label;
                 }}
@@ -224,16 +235,20 @@ export function HabitCharts() {
                   if (!payload || payload.length === 0) {
                     return label;
                   }
-                  const { complete, partial, active } = payload[0].payload as {
+                  const { complete, partial, active, notApplicable } = payload[0].payload as {
                     complete?: number;
                     partial?: number;
                     active?: number;
+                    notApplicable?: number;
                   };
                   if (typeof complete === "number" && typeof active === "number") {
                     const partialText = typeof partial === "number" && partial > 0
                       ? ` · ${partial} partial`
                       : "";
-                    return `${label} (${complete}/${active} complete${partialText})`;
+                    const notApplicableText = typeof notApplicable === "number" && notApplicable > 0
+                      ? ` · ${notApplicable} N/A`
+                      : "";
+                    return `${label} (${complete}/${active} complete${partialText}${notApplicableText})`;
                   }
                   return label;
                 }}

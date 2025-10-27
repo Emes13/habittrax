@@ -65,6 +65,11 @@ export function WeeklyCalendar({ onSelectDate, selectedDate }: WeeklyCalendarPro
       return "none";
     }
 
+    const allNotApplicable = logsForDay.every((log) => log.status === "not_applicable");
+    if (allNotApplicable) {
+      return "not_applicable";
+    }
+
     const allComplete = logsForDay.every((log) => log.status === "complete");
     if (allComplete) {
       return "complete";
@@ -90,6 +95,10 @@ export function WeeklyCalendar({ onSelectDate, selectedDate }: WeeklyCalendarPro
     incomplete: {
       button: "status-tile status-tile--danger",
       bar: "status-meter--danger",
+    },
+    not_applicable: {
+      button: "status-tile status-tile--muted",
+      bar: "status-meter--muted",
     },
     none: {
       button: "status-tile status-tile--neutral",

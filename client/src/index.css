@@ -57,6 +57,14 @@
     @apply border border-destructive/50 bg-white text-destructive hover:bg-destructive/10 focus-visible:ring-destructive/30;
   }
 
+  .status-button--neutral {
+    @apply bg-gray-200 text-gray-700 shadow-sm hover:bg-gray-300 focus-visible:ring-gray-300;
+  }
+
+  .status-button--neutral-muted {
+    @apply border border-gray-300 bg-white text-gray-500 hover:bg-gray-100 focus-visible:ring-gray-200;
+  }
+
   .status-icon {
     @apply h-4 w-4;
   }
@@ -71,6 +79,10 @@
 
   .status-icon--danger {
     @apply text-destructive;
+  }
+
+  .status-icon--neutral {
+    @apply text-gray-400;
   }
 
   .status-tile {
@@ -93,6 +105,10 @@
     @apply bg-gray-100 text-gray-700 hover:bg-gray-200 focus-visible:ring-gray-300;
   }
 
+  .status-tile--muted {
+    @apply bg-gray-200 text-gray-500 line-through decoration-gray-400 hover:bg-gray-200 focus-visible:ring-gray-300;
+  }
+
   .status-tile--today {
     @apply bg-primary/10 text-primary hover:bg-primary/20 focus-visible:ring-primary/40;
   }
@@ -110,6 +126,10 @@
   }
 
   .status-meter--neutral {
+    @apply bg-gray-300;
+  }
+
+  .status-meter--muted {
     @apply bg-gray-300;
   }
 }

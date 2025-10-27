@@ -49,7 +49,7 @@ export function HabitList({ selectedCategory, date = formatDate(new Date()) }: H
             <div className="flex gap-3">
               <div className="flex flex-col items-center gap-1">
                 <div className="flex items-center gap-1">
-                  {[1, 2, 3].map((status) => (
+                  {[1, 2, 3, 4].map((status) => (
                     <Skeleton key={status} className="h-8 w-8 rounded-full" />
                   ))}
                 </div>
