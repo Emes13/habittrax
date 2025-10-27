@@ -6,6 +6,7 @@ import {
   Trash2Icon,
   MoreVerticalIcon,
   XIcon,
+  MinusCircleIcon,
   LucideIcon,
   MinusIcon,
 } from "lucide-react";
@@ -59,6 +60,7 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
   });
 
   const currentStatus: HabitLogStatus = habitLog?.status ?? "incomplete";
+  const isNotApplicable = currentStatus === "not_applicable";
   const statusOptions: Array<{
     value: HabitLogStatus;
     label: string;
@@ -89,10 +91,10 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
     },
     {
       value: "not_applicable",
-      label: "Not applicable",
-      icon: MinusIcon,
+      label: "N/A",
+      icon: MinusCircleIcon,
       tone: "neutral",
-      helper: "Doesn't apply today",
+      helper: "Skipping today",
     },
   ];
 
@@ -218,9 +220,9 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
           tone: "destructive",
         },
         not_applicable: {
-          title: "Marked as not applicable",
-          description: "We'll skip this habit for now.",
-          Icon: MinusIcon,
+          title: "Habit skipped for today",
+          description: "We'll keep this out of your streak calculations.",
+          Icon: MinusCircleIcon,
           tone: "neutral",
         },
       };
@@ -303,7 +305,12 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
   
   return (
     <>
-      <div className="bg-white rounded-xl shadow-sm p-4 hover:shadow-md transition-shadow">
+      <div
+        className={cn(
+          "bg-white rounded-xl shadow-sm p-4 hover:shadow-md transition-shadow",
+          isNotApplicable && "border border-dashed border-gray-200 bg-gray-50"
+        )}
+      >
         <div className="flex items-start gap-3">
           <div className="flex flex-col items-center gap-1">
             <div className="flex items-center gap-1">
@@ -332,26 +339,35 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
               })}
             </div>
             <span className="text-[10px] font-medium text-gray-500">
-              {statusOptions.find((option) => option.value === currentStatus)?.helper}
+              {statusOptions.find((option) => option.value === currentStatus)?.helper ?? "Update status"}
             </span>
           </div>
-          
+
           <div className="flex-grow">
             <div className="flex items-center justify-between">
-              <h4 className="font-medium">{habit.name}</h4>
+              <h4 className={cn("font-medium", isNotApplicable && "text-gray-400 line-through")}>{habit.name}</h4>
               <div className="flex items-center gap-2">
                 {category && (
-                  <span 
-                    className="text-xs px-2 py-0.5 rounded-full"
-                    style={{ 
-                      backgroundColor: `${category.color}20`, 
-                      color: category.color 
+                  <span
+                    className={cn(
+                      "text-xs px-2 py-0.5 rounded-full",
+                      isNotApplicable && "bg-gray-200 text-gray-500"
+                    )}
+                    style={{
+                      backgroundColor: isNotApplicable ? undefined : `${category.color}20`,
+                      color: isNotApplicable ? undefined : category.color
                     }}
                   >
                     {category.name}
                   </span>
                 )}
-                
+
+                {isNotApplicable && (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-gray-200 text-gray-500">
+                    N/A today
+                  </span>
+                )}
+
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button className="h-7 w-7 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-100">
@@ -372,16 +388,16 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
             </div>
             
             {habit.description && (
-              <p className="text-sm text-gray-600 mt-1">{habit.description}</p>
+              <p className={cn("text-sm mt-1", isNotApplicable ? "text-gray-400 line-through" : "text-gray-600")}>{habit.description}</p>
             )}
-            
+
             <div className="flex items-center justify-between mt-3">
               <div className="flex items-center text-sm text-gray-500">
                 <ClockIcon className="h-4 w-4 mr-1" />
                 <span>{habit.reminderTime || "Anytime"}</span>
               </div>
-              
-              {streak > 0 && (
+
+              {streak > 0 && !isNotApplicable && (
                 <div className="flex items-center text-sm">
                   <span className={cn("mr-2", streakColor)}>
                     {streak} day streak

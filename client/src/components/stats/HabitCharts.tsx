@@ -86,13 +86,13 @@ export function HabitCharts() {
     const habitIds = categoryHabits.map(habit => habit.id);
 
     const relevantLogs = habitLogs.filter(log => habitIds.includes(log.habitId));
-    const actionableLogs = relevantLogs.filter(log => log.status !== "not_applicable");
-    const notApplicableCount = relevantLogs.length - actionableLogs.length;
-    const totalLogs = actionableLogs.length;
-    const completeCount = actionableLogs.filter(log => log.status === "complete").length;
-    const partialCount = actionableLogs.filter(log => log.status === "partial").length;
+    const notApplicableCount = relevantLogs.filter(log => log.status === "not_applicable").length;
+    const evaluableLogs = relevantLogs.filter(log => log.status !== "not_applicable");
+    const totalEvaluableLogs = evaluableLogs.length;
+    const completeCount = evaluableLogs.filter(log => log.status === "complete").length;
+    const partialCount = evaluableLogs.filter(log => log.status === "partial").length;
 
-    const completionRate = totalLogs > 0 ? (completeCount / totalLogs) * 100 : 0;
+    const completionRate = totalEvaluableLogs > 0 ? (completeCount / totalEvaluableLogs) * 100 : 0;
 
     return {
       name: category.name,
@@ -101,7 +101,7 @@ export function HabitCharts() {
       complete: completeCount,
       partial: partialCount,
       notApplicable: notApplicableCount,
-      total: totalLogs,
+      total: totalEvaluableLogs,
     };
   });
   
@@ -133,13 +133,13 @@ export function HabitCharts() {
       );
     });
 
-    const actionableLogs = dayLogs.filter(log => log.status !== "not_applicable");
-    const notApplicableCount = dayLogs.length - actionableLogs.length;
-    const completeCount = actionableLogs.filter(log => log.status === "complete").length;
-    const partialCount = actionableLogs.filter(log => log.status === "partial").length;
-    const effectiveActive = Math.max(activeHabits.length - notApplicableCount, 0);
-    const completionRate = effectiveActive > 0
-      ? (completeCount / effectiveActive) * 100
+    const notApplicableCount = dayLogs.filter(log => log.status === "not_applicable").length;
+    const evaluableHabits = Math.max(activeHabits.length - notApplicableCount, 0);
+    const evaluableLogs = dayLogs.filter(log => log.status !== "not_applicable");
+    const completeCount = evaluableLogs.filter(log => log.status === "complete").length;
+    const partialCount = evaluableLogs.filter(log => log.status === "partial").length;
+    const completionRate = evaluableHabits > 0
+      ? (completeCount / evaluableHabits) * 100
       : 0;
 
     return {
@@ -149,7 +149,7 @@ export function HabitCharts() {
       complete: completeCount,
       partial: partialCount,
       notApplicable: notApplicableCount,
-      active: effectiveActive,
+      active: evaluableHabits,
     };
   });
   
@@ -193,7 +193,7 @@ export function HabitCharts() {
                       ? ` · ${partial} partial`
                       : "";
                     const notApplicableText = typeof notApplicable === "number" && notApplicable > 0
-                      ? ` · ${notApplicable} not applicable`
+                      ? ` · ${notApplicable} N/A`
                       : "";
                     return `${label} (${complete}/${total} complete${partialText}${notApplicableText})`;
                   }
@@ -245,7 +245,7 @@ export function HabitCharts() {
                       ? ` · ${partial} partial`
                       : "";
                     const notApplicableText = typeof notApplicable === "number" && notApplicable > 0
-                      ? ` · ${notApplicable} not applicable`
+                      ? ` · ${notApplicable} N/A`
                       : "";
                     return `${label} (${complete}/${active} complete${partialText}${notApplicableText})`;
                   }

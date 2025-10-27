@@ -97,8 +97,8 @@ export function WeeklyCalendar({ onSelectDate, selectedDate }: WeeklyCalendarPro
       bar: "status-meter--danger",
     },
     not_applicable: {
-      button: "status-tile status-tile--neutral",
-      bar: "status-meter--neutral",
+      button: "status-tile status-tile--muted",
+      bar: "status-meter--muted",
     },
     none: {
       button: "status-tile status-tile--neutral",

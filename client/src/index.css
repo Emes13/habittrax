@@ -82,7 +82,7 @@
   }
 
   .status-icon--neutral {
-    @apply text-gray-500;
+    @apply text-gray-400;
   }
 
   .status-tile {
@@ -105,6 +105,10 @@
     @apply bg-gray-100 text-gray-700 hover:bg-gray-200 focus-visible:ring-gray-300;
   }
 
+  .status-tile--muted {
+    @apply bg-gray-200 text-gray-500 line-through decoration-gray-400 hover:bg-gray-200 focus-visible:ring-gray-300;
+  }
+
   .status-tile--today {
     @apply bg-primary/10 text-primary hover:bg-primary/20 focus-visible:ring-primary/40;
   }
@@ -122,6 +126,10 @@
   }
 
   .status-meter--neutral {
+    @apply bg-gray-300;
+  }
+
+  .status-meter--muted {
     @apply bg-gray-300;
   }
 }
