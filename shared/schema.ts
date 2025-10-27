@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, date, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, date, pgEnum, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -65,7 +65,10 @@ export const habitLogs = pgTable("habit_logs", {
   userId: integer("user_id").notNull(),
   date: date("date").notNull(),
   status: habitStatusEnum("status").notNull().default("incomplete"),
-});
+}, (table) => ({
+  habitUserDateUnique: uniqueIndex("habit_logs_habit_user_date_unique")
+    .on(table.habitId, table.userId, table.date),
+}));
 
 export const insertHabitLogSchema = createInsertSchema(habitLogs).pick({
   habitId: true,

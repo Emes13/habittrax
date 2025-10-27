@@ -36,7 +36,7 @@ export interface IStorage {
   getHabitLogs(habitId: number): Promise<HabitLog[]>;
   getHabitLogsByDate(userId: number, date: string): Promise<HabitLog[]>;
   getHabitLogsByDateRange(userId: number, startDate: string, endDate: string): Promise<HabitLog[]>;
-  getHabitLog(habitId: number, date: string): Promise<HabitLog | undefined>;
+  getHabitLog(habitId: number, date: string, userId: number): Promise<HabitLog | undefined>;
   createHabitLog(log: InsertHabitLog): Promise<HabitLog>;
   updateHabitLog(id: number, log: Partial<InsertHabitLog>): Promise<HabitLog | undefined>;
   toggleHabitCompletion(
@@ -230,12 +230,12 @@ export class MemStorage implements IStorage {
     });
   }
 
-  async getHabitLog(habitId: number, date: string): Promise<HabitLog | undefined> {
+  async getHabitLog(habitId: number, date: string, userId: number): Promise<HabitLog | undefined> {
     const logDate = new Date(date).toISOString().split('T')[0]; // Format as YYYY-MM-DD for consistent comparison
-    
+
     return Array.from(this.habitLogs.values()).find(log => {
       const storedDate = new Date(log.date).toISOString().split('T')[0];
-      return log.habitId === habitId && storedDate === logDate;
+      return log.habitId === habitId && log.userId === userId && storedDate === logDate;
     });
   }
 
@@ -270,7 +270,7 @@ export class MemStorage implements IStorage {
     status?: HabitStatus
   ): Promise<HabitLog> {
     // Check if log exists for this habit and date
-    const existingLog = await this.getHabitLog(habitId, date);
+    const existingLog = await this.getHabitLog(habitId, date, userId);
 
     if (existingLog) {
       const cycleStatus = (current: HabitStatus): HabitStatus => {
@@ -439,7 +439,7 @@ export class DatabaseStorage implements IStorage {
     // For each habit, find the log for this date
     const logs: HabitLog[] = [];
     for (const habitId of habitIds) {
-      const habitLog = await this.getHabitLog(habitId, normalizedDate);
+      const habitLog = await this.getHabitLog(habitId, normalizedDate, userId);
       if (habitLog) {
         logs.push(habitLog);
       }
@@ -472,27 +472,29 @@ export class DatabaseStorage implements IStorage {
         .where(
           and(
             eq(habitLogs.habitId, habitId),
+            eq(habitLogs.userId, userId),
             between(habitLogs.date, startStr, endStr)
           )
         );
       logs.push(...habitLogsResults);
     }
-    
+
     return logs;
   }
 
-  async getHabitLog(habitId: number, date: string): Promise<HabitLog | undefined> {
+  async getHabitLog(habitId: number, date: string, userId: number): Promise<HabitLog | undefined> {
     const normalizedDate = new Date(date).toISOString().split('T')[0]; // Format as YYYY-MM-DD
-    
+
     const results = await this.db.select()
       .from(habitLogs)
       .where(
         and(
           eq(habitLogs.habitId, habitId),
+          eq(habitLogs.userId, userId),
           eq(habitLogs.date, normalizedDate)
         )
       );
-    
+
     return results[0];
   }
 
@@ -532,38 +534,32 @@ export class DatabaseStorage implements IStorage {
     const normalizedDate = new Date(date).toISOString().split('T')[0]; // Format as YYYY-MM-DD
 
     // Check if log exists for this habit and date
-    const existingLog = await this.getHabitLog(habitId, normalizedDate);
+    const existingLog = await this.getHabitLog(habitId, normalizedDate, userId);
 
-    if (existingLog) {
-      const cycleStatus = (current: HabitStatus): HabitStatus => {
-        if (current === "complete") return "incomplete";
-        if (current === "partial" || current === "incomplete" || current === "not_applicable") {
-          return "complete";
-        }
+    const cycleStatus = (current: HabitStatus): HabitStatus => {
+      if (current === "complete") return "incomplete";
+      if (current === "partial" || current === "incomplete" || current === "not_applicable") {
         return "complete";
-      };
-
-      const nextStatus = status ?? cycleStatus(existingLog.status);
-
-      const updated = await this.updateHabitLog(existingLog.id, {
-        status: nextStatus
-      });
-
-      if (!updated) {
-        throw new Error("Failed to update habit log");
       }
+      return "complete";
+    };
 
-      return updated;
-    } else {
-      const resolvedStatus = status ?? "complete";
+    const nextStatus = status ?? (existingLog ? cycleStatus(existingLog.status) : "complete");
 
-      return await this.createHabitLog({
+    const results = await this.db.insert(habitLogs)
+      .values({
         habitId,
         userId,
         date: normalizedDate,
-        status: resolvedStatus
-      });
-    }
+        status: nextStatus,
+      })
+      .onConflictDoUpdate({
+        target: [habitLogs.habitId, habitLogs.userId, habitLogs.date],
+        set: { status: nextStatus },
+      })
+      .returning();
+
+    return results[0];
   }
   
   // Initialize default categories if they don't exist
