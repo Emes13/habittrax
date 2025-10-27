@@ -4,6 +4,7 @@ import { HabitCard } from "./HabitCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getStreakCount, formatDate, parseLocalDate } from "@/lib/dates";
 import { isHabitActiveOnDate } from "@/lib/habitUtils";
+import { apiRequest } from "@/lib/queryClient";
 
 interface HabitListProps {
   selectedCategory: string;
@@ -25,21 +26,35 @@ export function HabitList({ selectedCategory, date = formatDate(new Date()) }: H
   const rangeStart = formatDate(rangeStartDate);
   const rangeEnd = formatDate(selectedDateObj);
 
-  const { data: habitLogs, isLoading: isLoadingLogs } = useQuery<HabitLog[]>({
+  const { data: habitLogsRange, isLoading: isLoadingLogsRange } = useQuery<HabitLog[]>({
     queryKey: ['/api/habit-logs', { startDate: rangeStart, endDate: rangeEnd }],
     queryFn: async () => {
-      const response = await fetch(`/api/habit-logs?startDate=${rangeStart}&endDate=${rangeEnd}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch habit logs');
-      }
-      return response.json();
+      const response = await apiRequest("GET", "/api/habit-logs", undefined, {
+        params: { startDate: rangeStart, endDate: rangeEnd },
+      });
+      return response.json() as Promise<HabitLog[]>;
     },
     refetchOnWindowFocus: true,
-    staleTime: 0, // Always refetch
-    gcTime: 0     // Don't cache results (gcTime replaces cacheTime in TanStack Query v5)
+    staleTime: 0,
+    gcTime: 0,
   });
 
-  const isLoading = isLoadingHabits || isLoadingCategories || isLoadingLogs;
+  const { data: dailyHabitLogs, isLoading: isLoadingDailyLogs } = useQuery<HabitLog[]>({
+    queryKey: ['/api/habit-logs', { date }],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/habit-logs", undefined, {
+        params: { date },
+      });
+      return response.json() as Promise<HabitLog[]>;
+    },
+    staleTime: 0,
+  });
+
+  const isLoading =
+    isLoadingHabits ||
+    isLoadingCategories ||
+    isLoadingLogsRange ||
+    isLoadingDailyLogs;
 
   if (isLoading) {
     return (
@@ -90,23 +105,17 @@ export function HabitList({ selectedCategory, date = formatDate(new Date()) }: H
 
   // Calculate streaks for each habit
   const calculateHabitStreaks = (habitId: number) => {
-    if (!habitLogs) return 0;
-    
-    const completedDates = (habitLogs as HabitLog[])
-      .filter((log: HabitLog) => log.habitId === habitId && log.status === "complete")
-      .map((log: HabitLog) => parseLocalDate(log.date));
+    if (!habitLogsRange) return 0;
+
+    const completedDates = habitLogsRange
+      .filter((log) => log.habitId === habitId && log.status === "complete")
+      .map((log) => parseLocalDate(log.date));
     
     return getStreakCount(completedDates);
   };
 
   // Filter logs for the selected date
-  const currentDateLogs = habitLogs 
-    ? (habitLogs as HabitLog[]).filter((log: HabitLog) => {
-        const logDate = parseLocalDate(log.date).toISOString().split('T')[0];
-        const compareDate = selectedDateObj.toISOString().split('T')[0];
-        return logDate === compareDate;
-      }) 
-    : [];
+  const currentDateLogs = dailyHabitLogs ?? [];
 
   return (
     <div className="space-y-4">

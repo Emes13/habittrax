@@ -4,6 +4,7 @@ import { HabitLog, Habit } from "@shared/schema";
 import { formatDate, parseLocalDate } from "@/lib/dates";
 import { isHabitActiveOnDate } from "@/lib/habitUtils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { apiRequest } from "@/lib/queryClient";
 
 interface CircularProgressDisplayProps {
   date?: string;
@@ -18,13 +19,12 @@ export function CircularProgressDisplay({ date = formatDate(new Date()) }: Circu
   // Fetch habit logs for the date
   const { data: habitLogs, isLoading: isLoadingLogs } = useQuery<HabitLog[]>({
     queryKey: ['/api/habit-logs', { date }],
-    queryFn: async ({ queryKey }) => {
-      const response = await fetch(`/api/habit-logs?date=${date}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch habit logs');
-      }
-      return response.json();
-    }
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/habit-logs", undefined, {
+        params: { date },
+      });
+      return response.json() as Promise<HabitLog[]>;
+    },
   });
   
   const isLoading = isLoadingHabits || isLoadingLogs;

@@ -16,6 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { eachDayOfInterval, format, subMonths, isEqual } from "date-fns";
 import { formatDate, parseLocalDate } from "@/lib/dates";
 import { isHabitActiveOnDate } from "@/lib/habitUtils";
+import { apiRequest } from "@/lib/queryClient";
 
 export function HabitCharts() {
   const { data: habits, isLoading: isLoadingHabits } = useQuery<Habit[]>({
@@ -31,16 +32,15 @@ export function HabitCharts() {
   const startDate = subMonths(endDate, 1);
   
   const { data: habitLogs, isLoading: isLoadingLogs } = useQuery<HabitLog[]>({
-    queryKey: ['/api/habit-logs', { 
-      startDate: formatDate(startDate), 
-      endDate: formatDate(endDate) 
+    queryKey: ['/api/habit-logs', {
+      startDate: formatDate(startDate),
+      endDate: formatDate(endDate)
     }],
-    queryFn: async ({ queryKey }) => {
-      const response = await fetch(`/api/habit-logs?startDate=${formatDate(startDate)}&endDate=${formatDate(endDate)}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch habit logs');
-      }
-      return response.json();
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/habit-logs", undefined, {
+        params: { startDate: formatDate(startDate), endDate: formatDate(endDate) },
+      });
+      return response.json() as Promise<HabitLog[]>;
     }
   });
   
