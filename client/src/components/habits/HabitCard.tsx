@@ -163,7 +163,7 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
         return [
           ...existingLogs,
           {
-            id: Date.now(),
+            id: habitLog?.id ?? Date.now(),
             habitId: habit.id,
             userId: habit.userId,
             date: normalizedDate,
@@ -180,14 +180,15 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
     },
     onSuccess: (data) => {
       // Synchronize the cache with the server response
+      const normalizedDate = parseLocalDate(date).toISOString().split('T')[0];
+
       queryClient.setQueryData<HabitLog[]>(['/api/habit-logs', { date }], (existingLogs = []) => {
-        const index = existingLogs.findIndex(log => log.id === data.id);
-        if (index >= 0) {
-          const nextLogs = [...existingLogs];
-          nextLogs[index] = data;
-          return nextLogs;
-        }
-        return [...existingLogs, data];
+        const filteredLogs = existingLogs.filter((log) => {
+          const logDate = parseLocalDate(log.date).toISOString().split('T')[0];
+          return !(log.habitId === habit.id && logDate === normalizedDate);
+        });
+
+        return [...filteredLogs, data];
       });
 
       queryClient.invalidateQueries({ queryKey: ['/api/habit-logs'], refetchType: 'active' });
