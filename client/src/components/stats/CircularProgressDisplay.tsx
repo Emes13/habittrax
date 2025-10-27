@@ -80,6 +80,8 @@ export function CircularProgressDisplay({ date = formatDate(new Date()) }: Circu
   const activeHabitIds = activeHabits.map(h => h.id);
   const totalHabits = activeHabits.length;
   const dailyLogs = habitLogs.filter(log => activeHabitIds.includes(log.habitId));
+  const notApplicableHabits = dailyLogs.filter((log) => log.status === "not_applicable").length;
+  const actionableHabits = Math.max(totalHabits - notApplicableHabits, 0);
   const completedHabits = dailyLogs.filter((log) => log.status === "complete").length;
   const partialHabits = dailyLogs.filter((log) => log.status === "partial").length;
   const notApplicableHabits = dailyLogs.filter((log) => log.status === "not_applicable").length;
