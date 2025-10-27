@@ -49,6 +49,11 @@ const ReminderChecker = ({ habits }: Props) => {
             log.date.startsWith(todayIso)
         );
 
+        if (todayLog?.status === "not_applicable") {
+          remindedIds.current.add(habit.id);
+          return;
+        }
+
         const isComplete = todayLog?.status === "complete";
         const isPartial = todayLog?.status === "partial";
 

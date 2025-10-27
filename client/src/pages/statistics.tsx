@@ -33,10 +33,13 @@ export default function Statistics() {
   const activeHabitsToday = habits?.filter(habit => isHabitActiveOnDate(habit, today)) ?? [];
   const activeHabitIds = new Set(activeHabitsToday.map(habit => habit.id));
   const todayActiveLogs = todayLogs?.filter(log => activeHabitIds.has(log.habitId)) ?? [];
-  const completedToday = todayActiveLogs.filter(log => log.status === "complete").length;
-  const partialToday = todayActiveLogs.filter(log => log.status === "partial").length;
-  const completionRate = activeHabitsToday.length > 0
-    ? (completedToday / activeHabitsToday.length) * 100
+  const applicableTodayLogs = todayActiveLogs.filter(log => log.status !== "not_applicable");
+  const notApplicableToday = todayActiveLogs.length - applicableTodayLogs.length;
+  const completedToday = applicableTodayLogs.filter(log => log.status === "complete").length;
+  const partialToday = applicableTodayLogs.filter(log => log.status === "partial").length;
+  const applicableActiveCount = Math.max(activeHabitsToday.length - notApplicableToday, 0);
+  const completionRate = applicableActiveCount > 0
+    ? (completedToday / applicableActiveCount) * 100
     : 0;
   
   return (

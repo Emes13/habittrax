@@ -92,11 +92,18 @@ export function HabitList({ selectedCategory, date = formatDate(new Date()) }: H
   const calculateHabitStreaks = (habitId: number) => {
     if (!habitLogs) return 0;
     
-    const completedDates = (habitLogs as HabitLog[])
-      .filter((log: HabitLog) => log.habitId === habitId && log.status === "complete")
+    const habitSpecificLogs = (habitLogs as HabitLog[]).filter(
+      (log: HabitLog) => log.habitId === habitId
+    );
+
+    const completedDates = habitSpecificLogs
+      .filter((log: HabitLog) => log.status === "complete")
       .map((log: HabitLog) => parseLocalDate(log.date));
-    
-    return getStreakCount(completedDates);
+    const skippedDates = habitSpecificLogs
+      .filter((log: HabitLog) => log.status === "not_applicable")
+      .map((log: HabitLog) => parseLocalDate(log.date));
+
+    return getStreakCount(completedDates, skippedDates);
   };
 
   // Filter logs for the selected date

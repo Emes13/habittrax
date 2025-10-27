@@ -60,17 +60,18 @@ export function WeeklyCalendar({ onSelectDate, selectedDate }: WeeklyCalendarPro
 
     const formattedDate = formatDate(date);
     const logsForDay = habitLogs.filter(log => formatDate(parseLocalDate(log.date)) === formattedDate);
+    const applicableLogs = logsForDay.filter(log => log.status !== "not_applicable");
 
-    if (logsForDay.length === 0) {
+    if (applicableLogs.length === 0) {
       return "none";
     }
 
-    const allComplete = logsForDay.every((log) => log.status === "complete");
+    const allComplete = applicableLogs.every((log) => log.status === "complete");
     if (allComplete) {
       return "complete";
     }
 
-    const allIncomplete = logsForDay.every((log) => log.status === "incomplete");
+    const allIncomplete = applicableLogs.every((log) => log.status === "incomplete");
     if (allIncomplete) {
       return "incomplete";
     }

@@ -87,9 +87,10 @@ export function HabitCharts() {
     const habitIds = categoryHabits.map(habit => habit.id);
 
     const relevantLogs = habitLogs.filter(log => habitIds.includes(log.habitId));
-    const totalLogs = relevantLogs.length;
-    const completeCount = relevantLogs.filter(log => log.status === "complete").length;
-    const partialCount = relevantLogs.filter(log => log.status === "partial").length;
+    const applicableLogs = relevantLogs.filter(log => log.status !== "not_applicable");
+    const totalLogs = applicableLogs.length;
+    const completeCount = applicableLogs.filter(log => log.status === "complete").length;
+    const partialCount = applicableLogs.filter(log => log.status === "partial").length;
 
     const completionRate = totalLogs > 0 ? (completeCount / totalLogs) * 100 : 0;
 
@@ -131,10 +132,13 @@ export function HabitCharts() {
       );
     });
 
-    const completeCount = dayLogs.filter(log => log.status === "complete").length;
-    const partialCount = dayLogs.filter(log => log.status === "partial").length;
-    const completionRate = activeHabits.length > 0
-      ? (completeCount / activeHabits.length) * 100
+    const applicableLogs = dayLogs.filter(log => log.status !== "not_applicable");
+    const notApplicableCount = dayLogs.length - applicableLogs.length;
+    const completeCount = applicableLogs.filter(log => log.status === "complete").length;
+    const partialCount = applicableLogs.filter(log => log.status === "partial").length;
+    const applicableActiveCount = Math.max(activeHabits.length - notApplicableCount, 0);
+    const completionRate = applicableActiveCount > 0
+      ? (completeCount / applicableActiveCount) * 100
       : 0;
 
     return {
@@ -143,7 +147,7 @@ export function HabitCharts() {
       rate: Math.round(completionRate),
       complete: completeCount,
       partial: partialCount,
-      active: activeHabits.length,
+      active: applicableActiveCount,
     };
   });
   

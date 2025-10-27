@@ -78,11 +78,12 @@ export function CircularProgressDisplay({ date = formatDate(new Date()) }: Circu
   const dateObj = parseLocalDate(date);
   const activeHabits = habits.filter(habit => isHabitActiveOnDate(habit, dateObj));
   const activeHabitIds = activeHabits.map(h => h.id);
-  const totalHabits = activeHabits.length;
   const dailyLogs = habitLogs.filter(log => activeHabitIds.includes(log.habitId));
+  const notApplicableCount = dailyLogs.filter((log) => log.status === "not_applicable").length;
+  const applicableTotal = Math.max(activeHabits.length - notApplicableCount, 0);
   const completedHabits = dailyLogs.filter((log) => log.status === "complete").length;
   const partialHabits = dailyLogs.filter((log) => log.status === "partial").length;
-  const completionRate = totalHabits > 0 ? (completedHabits / totalHabits) * 100 : 0;
+  const completionRate = applicableTotal > 0 ? (completedHabits / applicableTotal) * 100 : 0;
   
   return (
     <div className="bg-white rounded-xl shadow-sm p-4 mb-6">

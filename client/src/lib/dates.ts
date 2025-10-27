@@ -60,27 +60,46 @@ export function isToday(date: Date): boolean {
   return isSameDay(date, new Date());
 }
 
-export function getStreakCount(completionDates: Date[]): number {
+export function getStreakCount(completionDates: Date[], skippedDates: Date[] = []): number {
   if (completionDates.length === 0) return 0;
-  
+
   // Sort dates in descending order
   const sortedDates = [...completionDates].sort((a, b) => b.getTime() - a.getTime());
-  
+
+  const skippedSet = new Set(skippedDates.map((date) => formatDate(date)));
+  const isSkipped = (date: Date) => skippedSet.has(formatDate(date));
+  const findPreviousTrackedDate = (date: Date) => {
+    let candidate = subDays(date, 1);
+    while (isSkipped(candidate)) {
+      candidate = subDays(candidate, 1);
+    }
+    return candidate;
+  };
+
   let streak = 1;
   let currentDate = sortedDates[0];
-  
-  // Check if the streak includes today or yesterday
+
+  // Ensure the most recent completion is contiguous with today when accounting for skipped days
   const today = new Date();
-  const yesterday = subDays(today, 1);
-  
-  if (!isSameDay(currentDate, today) && !isSameDay(currentDate, yesterday)) {
-    return 0; // Streak broken if most recent date isn't today or yesterday
+  let comparisonDate = today;
+  while (
+    isSkipped(comparisonDate) &&
+    comparisonDate.getTime() > currentDate.getTime()
+  ) {
+    comparisonDate = subDays(comparisonDate, 1);
   }
-  
-  // Count consecutive days
+
+  if (
+    !isSameDay(currentDate, comparisonDate) &&
+    !isSameDay(currentDate, subDays(comparisonDate, 1))
+  ) {
+    return 0; // Streak broken if most recent completion is too far in the past
+  }
+
+  // Count consecutive days, skipping not applicable dates
   for (let i = 1; i < sortedDates.length; i++) {
-    const expectedPreviousDate = subDays(currentDate, 1);
-    
+    const expectedPreviousDate = findPreviousTrackedDate(currentDate);
+
     if (isSameDay(sortedDates[i], expectedPreviousDate)) {
       streak++;
       currentDate = sortedDates[i];
@@ -88,6 +107,6 @@ export function getStreakCount(completionDates: Date[]): number {
       break; // Streak broken
     }
   }
-  
+
   return streak;
 }
