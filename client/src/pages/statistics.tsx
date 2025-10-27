@@ -4,6 +4,7 @@ import { formatDisplayDate, formatDate } from "@/lib/dates";
 import { HabitCharts } from "@/components/stats/HabitCharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isHabitActiveOnDate } from "@/lib/habitUtils";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function Statistics() {
   const today = new Date();
@@ -17,12 +18,11 @@ export default function Statistics() {
   // Fetch today's habit logs
   const { data: todayLogs, isLoading: isLoadingLogs } = useQuery<HabitLog[]>({
     queryKey: ['/api/habit-logs', { date: formatDate(today) }],
-    queryFn: async ({ queryKey }) => {
-      const response = await fetch(`/api/habit-logs?date=${formatDate(today)}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch habit logs');
-      }
-      return response.json();
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/habit-logs", undefined, {
+        params: { date: formatDate(today) },
+      });
+      return response.json() as Promise<HabitLog[]>;
     }
   });
   

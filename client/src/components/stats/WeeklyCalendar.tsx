@@ -16,6 +16,7 @@ import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { apiRequest } from "@/lib/queryClient";
 
 interface WeeklyCalendarProps {
   onSelectDate: (date: string) => void;
@@ -30,16 +31,15 @@ export function WeeklyCalendar({ onSelectDate, selectedDate }: WeeklyCalendarPro
   
   // Fetch habit logs for the current week
   const { data: habitLogs, isLoading } = useQuery<HabitLog[]>({
-    queryKey: ['/api/habit-logs', { 
-      startDate: formatDate(weekDates.start), 
-      endDate: formatDate(weekDates.end) 
+    queryKey: ['/api/habit-logs', {
+      startDate: formatDate(weekDates.start),
+      endDate: formatDate(weekDates.end)
     }],
-    queryFn: async ({ queryKey }) => {
-      const response = await fetch(`/api/habit-logs?startDate=${formatDate(weekDates.start)}&endDate=${formatDate(weekDates.end)}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch habit logs');
-      }
-      return response.json();
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/habit-logs", undefined, {
+        params: { startDate: formatDate(weekDates.start), endDate: formatDate(weekDates.end) },
+      });
+      return response.json() as Promise<HabitLog[]>;
     }
   });
   
