@@ -35,8 +35,10 @@ export default function Statistics() {
   const todayActiveLogs = todayLogs?.filter(log => activeHabitIds.has(log.habitId)) ?? [];
   const completedToday = todayActiveLogs.filter(log => log.status === "complete").length;
   const partialToday = todayActiveLogs.filter(log => log.status === "partial").length;
-  const completionRate = activeHabitsToday.length > 0
-    ? (completedToday / activeHabitsToday.length) * 100
+  const notApplicableToday = todayActiveLogs.filter(log => log.status === "not_applicable").length;
+  const actionableHabits = Math.max(activeHabitsToday.length - notApplicableToday, 0);
+  const completionRate = actionableHabits > 0
+    ? (completedToday / actionableHabits) * 100
     : 0;
   
   return (
@@ -69,6 +71,9 @@ export default function Statistics() {
             <div>
               <p className="text-2xl font-bold">{completedToday} complete</p>
               <p className="text-sm text-warning mt-1">{partialToday} partial</p>
+              {notApplicableToday > 0 && (
+                <p className="text-sm text-gray-500 mt-1">{notApplicableToday} not applicable</p>
+              )}
             </div>
           )}
         </div>

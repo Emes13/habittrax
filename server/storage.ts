@@ -273,7 +273,15 @@ export class MemStorage implements IStorage {
     const existingLog = await this.getHabitLog(habitId, date);
 
     if (existingLog) {
-      const nextStatus = status ?? (existingLog.status === "complete" ? "incomplete" : "complete");
+      const cycleStatus = (current: HabitStatus): HabitStatus => {
+        if (current === "complete") return "incomplete";
+        if (current === "partial" || current === "incomplete" || current === "not_applicable") {
+          return "complete";
+        }
+        return "complete";
+      };
+
+      const nextStatus = status ?? cycleStatus(existingLog.status);
 
       const updated = await this.updateHabitLog(existingLog.id, {
         status: nextStatus
@@ -527,7 +535,15 @@ export class DatabaseStorage implements IStorage {
     const existingLog = await this.getHabitLog(habitId, normalizedDate);
 
     if (existingLog) {
-      const nextStatus = status ?? (existingLog.status === "complete" ? "incomplete" : "complete");
+      const cycleStatus = (current: HabitStatus): HabitStatus => {
+        if (current === "complete") return "incomplete";
+        if (current === "partial" || current === "incomplete" || current === "not_applicable") {
+          return "complete";
+        }
+        return "complete";
+      };
+
+      const nextStatus = status ?? cycleStatus(existingLog.status);
 
       const updated = await this.updateHabitLog(existingLog.id, {
         status: nextStatus

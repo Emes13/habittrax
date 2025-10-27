@@ -56,6 +56,7 @@ export const habitStatusEnum = pgEnum("habit_status", [
   "incomplete",
   "partial",
   "complete",
+  "not_applicable",
 ]);
 
 export const habitLogs = pgTable("habit_logs", {
@@ -72,7 +73,7 @@ export const insertHabitLogSchema = createInsertSchema(habitLogs).pick({
   date: true,
   status: true,
 }).extend({
-  status: z.enum(habitStatusEnum.enumValues).optional(),
+  status: z.enum(habitStatusEnum.enumValues).default("incomplete"),
 });
 
 // Types

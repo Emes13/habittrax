@@ -7,6 +7,7 @@ import {
   MoreVerticalIcon,
   XIcon,
   LucideIcon,
+  MinusIcon,
 } from "lucide-react";
 import { useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
@@ -62,7 +63,7 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
     value: HabitLogStatus;
     label: string;
     icon: LucideIcon;
-    tone: "success" | "warning" | "destructive";
+    tone: "success" | "warning" | "destructive" | "neutral";
     helper: string;
   }> = [
     {
@@ -86,9 +87,16 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
       tone: "destructive",
       helper: "Not yet started",
     },
+    {
+      value: "not_applicable",
+      label: "Not applicable",
+      icon: MinusIcon,
+      tone: "neutral",
+      helper: "Doesn't apply today",
+    },
   ];
 
-  const toneClasses: Record<"success" | "warning" | "destructive", { active: string; inactive: string; icon: string }> = {
+  const toneClasses: Record<"success" | "warning" | "destructive" | "neutral", { active: string; inactive: string; icon: string }> = {
     success: {
       active: "status-button status-button--success",
       inactive: "status-button status-button--success-muted",
@@ -103,6 +111,11 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
       active: "status-button status-button--danger",
       inactive: "status-button status-button--danger-muted",
       icon: "status-icon status-icon--danger",
+    },
+    neutral: {
+      active: "status-button status-button--neutral",
+      inactive: "status-button status-button--neutral-muted",
+      icon: "status-icon status-icon--neutral",
     },
   };
   
@@ -203,6 +216,12 @@ export function HabitCard({ habit, categories, logs = [], date = formatDate(new 
           description: "You can still complete it later!",
           Icon: XIcon,
           tone: "destructive",
+        },
+        not_applicable: {
+          title: "Marked as not applicable",
+          description: "We'll skip this habit for now.",
+          Icon: MinusIcon,
+          tone: "neutral",
         },
       };
 
